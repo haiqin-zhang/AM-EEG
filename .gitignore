@@ -1,3 +1,4 @@
 *.bdf
 test_data/
 .DS_store
+*test.ipynb

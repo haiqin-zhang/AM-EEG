@@ -2,7 +2,6 @@
 Some functions for analysis. Updated every once in a while maybe...?
 """
 
-
 import numpy as np
 import mne
 
@@ -21,6 +20,57 @@ def clean_triggers(trig_array, threshold = 100):
     indices = np.concatenate(([0], indices + 1))
     return trig_array[indices]
 
+""" 
+Finds timeframes of each playing mode in the error trial (inv, shinv, or norm)
+raw: eeg data
+section_triggers: the mode of interest
+t_modeswitch: events, defined beforehand. All the mode-related triggers
+
+Example: 
+find_sections(raw, t_shinv, t_modeswitch)
+"""
+def find_sections(raw, section_trigggers, mode_triggers):
+    section_times = []
+    for segment_start in section_trigggers[:,0]:
+
+        #segment_start = time #because crop() uses seconds and not samples
+        remaining_trigs =  [x for x in mode_triggers[:,0] if x > segment_start]
+        if len(remaining_trigs) > 0: 
+            segment_end = remaining_trigs[0]
+
+        #make sure the max length of eeg is not exceeded
+        else:
+            segment_end = raw.times.max()
+
+        section_times.append([segment_start, segment_end])
+
+    return np.array(section_times)
+
+
+""" 
+Finds the keystrokes that fall into a certain condition.
+raw: EEG data
+t_keystrokes: all keystroke events
+timeframes: the times of the condition you want, found with find_sections
+
+Example: find_keystrokes(raw, t_keystrokes, norm_times)
+"""
+def find_keystrokes(raw, t_keystrokes, timeframes):
+    keystrokes = t_keystrokes[:,0]
+    filt_keystrokes = []
+    for segment in timeframes:
+        start = segment[0]
+        end = segment[1]
+
+        condition = (keystrokes >= start) & (keystrokes <= end)
+        filt_keystrokes.extend(keystrokes[condition])
+
+    indices = np.where(np.isin(t_keystrokes[:, 0], filt_keystrokes))[0]
+    filt_keystrokes_events = t_keystrokes[indices]
+    return filt_keystrokes_events
+#-------------------------------------------------------------------
+# STUFF BELOW NOT IN USE
+#-------------------------------------------------------------------
 
 """
 Concatenates different sections of the EEG experiment that are OF THE SAME LENGTH
@@ -34,7 +84,7 @@ segment_dur: duration of the segment. For muted segments it's 30 seconds, for un
 
 Note: the time axis will still be continuous even if the data has been chopped up
 """
-def concat_uniform(raw, events, segment_dur):
+def concat_uniform(raw, events, segment_dur, fs):
     segments = []
     for time in events[:,0]:
 
@@ -59,7 +109,7 @@ raw: the original raw file straight out of mne.io.read_raw_bdf
 events1: trigger array marking beginning of the segment of interest. Take only first column. Ex. trig_inv[:,0]
 events2: trigger array marking beginning of other segments (and therefore the end of the segment of interest)
 """
-def concat_nonuniform(raw, events1, events2):
+def concat_nonuniform(raw, events1, events2, fs):
     segments = []
     for time in events1[:,0]:
 
