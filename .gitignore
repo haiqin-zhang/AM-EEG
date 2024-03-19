@@ -1,4 +1,12 @@
 *.bdf
+*.wav
+
+
 test_data/
 .DS_store
-*test.ipynb
+data_raw/
+data_preprocessed/
+stimuli/
+
+*.pyc
+__pycache__/
