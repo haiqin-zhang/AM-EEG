@@ -26,6 +26,22 @@ def clean_triggers(trig_array, threshold=100):
     
     return np.array(cleaned_triggers)
 
+"Preserves short events during downsampling"
+def discretize(arr, final_length, downfreq_factor = 32):
+    n_bins = int(len(arr)//downfreq_factor)
+
+    if len(arr) % downfreq_factor != 0:
+        remainder = downfreq_factor - (len(arr) % downfreq_factor)
+        arr = np.append(arr, [0] * int(remainder))
+        n_bins +=1
+
+    arr_reshaped = arr.reshape(n_bins, downfreq_factor)
+    discretized_arr = np.any(arr_reshaped, axis=1).astype(int)
+
+    discretized_arr = discretized_arr[0:final_length]
+
+    return discretized_arr
+
 """ 
 Sorts the events found by mne into events from different soundcard channels.
 
@@ -38,18 +54,30 @@ Example:
 
 events_2, events_3, events_4, events_5, trial_starts = sort_events(events)
 """
-def sort_events(events):
-    assert 65282 and 65284 and 65288 and 65296 in events[:,2], "Not all trig categories are present"
+def sort_events(events, clean = True):
+    #assert 65282 and 65284 and 65288 and 65296 in events[:,2], "Not all trig categories are present"
 
-    events_2 = clean_triggers(events[events[:,2] == 65282]) #t2 - keystrokes
-    events_3 = clean_triggers(events[events[:,2] == 65284]) #t3
-    events_4 = clean_triggers(events[events[:,2] == 65288]) #t4
-    events_5 = clean_triggers(events[events[:,2] == 65296]) #t5 (it's also used for trials, so there should be two far apart at the beginning)
-    #events_idk  = clean_triggers(events[events[:,2] == 65290]) #extra weird triggers
+    if 65282 and 65284 and 65288 and 65296 in events[:,2]:
+        print("All event types present")    
+    else:
+        print("Some event types missing. Check data.")
 
-    #get only the start triggers that are at least 11min 10 secs (670 s) mins apart
-    #motor and error trials are exactly 10 mins long. Passive listening is 11:05 mins.
-    trial_starts = clean_triggers(events[events[:,2] == 65296], threshold = 1372160) 
+    if clean == True:
+        events_2 = clean_triggers(events[events[:,2] == 65282]) #t2 - keystrokes
+        events_3 = clean_triggers(events[events[:,2] == 65284]) #t3
+        events_4 = clean_triggers(events[events[:,2] == 65288]) #t4
+        events_5 = clean_triggers(events[events[:,2] == 65296]) #t5 (it's also used for trials, so there should be two far apart at the beginning)
+
+        #get only the start triggers that are at least 11min 10 secs (670 s) mins apart
+        #motor and error trials are exactly 10 mins long. Passive listening is 11:05 mins.
+        trial_starts = clean_triggers(events[events[:,2] == 65296], threshold = 1372160) 
+    
+    else:
+        events_2 = events[events[:,2] == 65282]
+        events_3 = events[events[:,2] == 65284]
+        events_4 = events[events[:,2] == 65288]
+        events_5 = events[events[:,2] == 65296]
+        trial_starts = events[events[:,2] == 65296]
 
     return events_2, events_3, events_4, events_5, trial_starts
 

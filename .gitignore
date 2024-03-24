@@ -1,12 +1,21 @@
+
+#file types
 *.bdf
 *.wav
 
-
+#folders
 test_data/
 .DS_store
 data_raw/
 data_preprocessed/
 stimuli/
 
+#specific files
+segment_and_preprocess_giorgia.py
+**/test.ipynb
+
+#caches and logs
 *.pyc
-__pycache__/
+**/__pycache__/
+**/.DS_store
+
