@@ -42,6 +42,30 @@ def discretize(arr, final_length, downfreq_factor = 32):
 
     return discretized_arr
 
+
+"""Takes a support vector (0 and 1s with 1s being events at time index) and makes 
+an event erray compatible with mne.raw 
+
+Returns: events_arr, nevents x 3 array where 1st column is event timestamp (relative to 
+beginning of trial), 2nd column is zeros because we don't use it, 3rd column is event type 
+from 2 to 6 (corresponding to the trigger channel numbers)
+"""
+def make_raw_events(supportvec):
+    events_arr = []
+    
+    for i in range(2, 7):
+        indices = np.where(supportvec[i-2] == 1)[0]
+        indices = indices.reshape(-1,1)
+        zeros = np.zeros(indices.shape)
+        event_type = np.full((indices.shape), i)
+        events_arr.append(np.concatenate([indices, zeros, event_type], axis=1))
+
+    events_arr = np.concatenate(events_arr)
+    events_arr = events_arr.astype(int)
+
+    return events_arr
+
+
 """ 
 Sorts the events found by mne into events from different soundcard channels.
 
