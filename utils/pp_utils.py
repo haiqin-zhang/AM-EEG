@@ -1,11 +1,13 @@
 """
-Some functions for analysis. Updated every once in a while maybe...?
+Functions for preprocessing
 """
 
 import numpy as np
 import mne
 
-
+#======================================================================================
+#                      PROCESSING TRIGGERS
+#======================================================================================
 """
 Filters the trigger signals so that only the first value of each group of triggers that is close in time is retained. 
 Necessary because the triggers are analog so each real trigger results in a string of triggers being detected.
@@ -14,17 +16,20 @@ Trig array: the array straight out of mne.find_events
 Threshold: the minimum difference in the first column between the previous and current row for the current row to be retained 
 """ 
 def clean_triggers(trig_array, threshold=100):
-    cleaned_triggers = []
-    prev_trigger_time = trig_array[0, 0]  # Initialize with the first trigger time
-    cleaned_triggers.append(trig_array[0])  # Retain the first trigger
-    
-    for trigger in trig_array[1:]:
-        trigger_time = trigger[0]
-        if trigger_time - prev_trigger_time > threshold:
-            cleaned_triggers.append(trigger)
-            prev_trigger_time = trigger_time
-    
-    return np.array(cleaned_triggers)
+    if not np.any(trig_array):
+        return trig_array
+    else:
+        cleaned_triggers = []
+        prev_trigger_time = trig_array[0, 0]  # Initialize with the first trigger time
+        cleaned_triggers.append(trig_array[0])  # Retain the first trigger
+        
+        for trigger in trig_array[1:]:
+            trigger_time = trigger[0]
+            if trigger_time - prev_trigger_time > threshold:
+                cleaned_triggers.append(trigger)
+                prev_trigger_time = trigger_time
+        
+        return np.array(cleaned_triggers)
 
 "Preserves short events during downsampling"
 def discretize(arr, final_length, downfreq_factor = 32):
@@ -65,6 +70,20 @@ def make_raw_events(supportvec):
 
     return events_arr
 
+"""
+Sort events in a 3-column event array so that they're ordered in time. Run this after concatenating
+the lists of events from triggers 3, 4, and 5.
+
+events_arr: usually t_modeswitch
+returns the same array but sorted
+
+Example: events_inorder(t_modeswitch)
+"""
+def events_inorder(events_arr):
+    indices = np.argsort(events_arr[:, 0])
+    sorted_arr = events_arr[indices]
+    return sorted_arr
+
 
 """ 
 Sorts the events found by mne into events from different soundcard channels.
@@ -90,7 +109,8 @@ def sort_events(events, clean = True):
         events_2 = clean_triggers(events[events[:,2] == 65282]) #t2 - keystrokes
         events_3 = clean_triggers(events[events[:,2] == 65284]) #t3
         events_4 = clean_triggers(events[events[:,2] == 65288]) #t4
-        events_5 = clean_triggers(events[events[:,2] == 65296]) #t5 (it's also used for trials, so there should be two far apart at the beginning)
+        events_5 = clean_triggers(events[events[:,2] == 65296]) #t5 (it's also used for trial starts in subject 1, so there should be two far apart at the beginning)
+        events_6 = clean_triggers(events[events[:,2] > 65296]) #t6
 
         #get only the start triggers that are at least 11min 10 secs (670 s) mins apart
         #motor and error trials are exactly 10 mins long. Passive listening is 11:05 mins.
@@ -101,11 +121,15 @@ def sort_events(events, clean = True):
         events_3 = events[events[:,2] == 65284]
         events_4 = events[events[:,2] == 65288]
         events_5 = events[events[:,2] == 65296]
-        trial_starts = events[events[:,2] == 65296]
+        events_6 = events[events[:,2] > 65296]
+        trial_starts = events[events[:,2] == 65298]
 
-    return events_2, events_3, events_4, events_5, trial_starts
+    return events_2, events_3, events_4, events_5, events_6, trial_starts
 
 
+#======================================================================================
+#                       FINDING/CLASSIFYING KEYSTROKES
+#======================================================================================
 """ 
 Finds timeframes of each playing mode in the error trial (inv, shinv, or norm)
 raw: eeg data
@@ -115,7 +139,7 @@ t_modeswitch: events, defined beforehand. All the mode-related triggers
 Example: 
 find_sections(raw, t_shinv, t_modeswitch)
 """
-def find_sections(raw, section_trigggers, mode_triggers):
+def find_sections(raw, section_trigggers, mode_triggers, downfreq = 128):
     section_times = []
     for segment_start in section_trigggers[:,0]:
 
@@ -126,7 +150,7 @@ def find_sections(raw, section_trigggers, mode_triggers):
 
         #make sure the max length of eeg is not exceeded
         else:
-            segment_end = raw.times.max()
+            segment_end = raw.times.max()*downfreq
 
         section_times.append([segment_start, segment_end])
 
