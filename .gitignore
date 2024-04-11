@@ -2,14 +2,17 @@
 #file types
 *.bdf
 *.wav
+*.mat
 
 #folders
 test_data/
 .DS_store
 data_raw/
 data_preprocessed/
+data_preprocessed_30hz/
 stimuli/
 old_files/
+**figures/
 
 #specific files
 segment_and_preprocess_giorgia.py
