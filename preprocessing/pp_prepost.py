@@ -15,8 +15,8 @@ from pp_utils import *
 #======================================================================================
 #                        SPECIFY SUBJECTS AND WHAT PART OF THE EXPERIMENT
 #======================================================================================
-subjects_to_process = ['05']
-period = 'post'
+subjects_to_process = ['08']
+period = 'pre'
 
 #======================================================================================
 #                        INITIALIZE DIRECTORIES
@@ -25,7 +25,7 @@ root_dir = "/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/data_raw" #wh
 output_base = '/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/data_preprocessed' #where all the preprocessed .mat files and other info go
 
 plot = False
-check_events = False
+check_events = True
 FS_ORIG = 2048  # Hz
 #fs was 1024 for participant 03 
 
@@ -63,15 +63,15 @@ if not down_applied:
     downfreq = FS_ORIG
 downfreq_factor =int(FS_ORIG/downfreq)
 
-
 for subject in subjects_to_process:
     if period == 'pre':
         file = f'/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/data_raw/sub_{subject}/sub_{subject}_01.bdf'
     elif period == 'post':
-        file = f'/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/data_raw/sub_{subject}/sub_{subject}_01.bdf'
+        file = f'/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/data_raw/sub_{subject}/sub_{subject}_03.bdf'
     else: #just pick a random file for a test
         file = f'/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/data_raw/sub_{subject}/sub_{subject}_01.bdf'
 
+    print('Processing file: ', file)
 #====================================================================================== 
 #                           check events
 #======================================================================================
@@ -116,7 +116,6 @@ for subject in subjects_to_process:
     df_pre = pd.DataFrame()
     subject_ID = file.split('/')[-2][-2:]
 
-    print("Currently processing ", file)
     #already_processed.append(subject_ID)
 
     output_dir = os.path.join(output_base, subject_ID)

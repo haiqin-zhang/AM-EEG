@@ -3,6 +3,7 @@
 *.bdf
 *.wav
 *.mat
+*.fif
 
 #folders
 test_data/
