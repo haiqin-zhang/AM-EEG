@@ -22,6 +22,11 @@ Need to specify:
 subjects: list of subject IDs
 periods: a list including 'pre', 'post', or both
 task: 'listen' or 'motor'
+
+to run: 
+cd pipelines_LM
+python ep_ERP.py
+
 """
 #======================================================================================
 #                        PARAMETERS
@@ -29,8 +34,8 @@ task: 'listen' or 'motor'
 
 #CHANGE THIS AS THE EXPERIMENT PROGRESSES
 #----------------------------------------
-subjects_to_process = ['05', '06', '07']
-periods = ['pre', 'post']
+subjects_to_process = [ '04']
+periods = ['pre']
 task = 'motor'
 
 overwrite = True
