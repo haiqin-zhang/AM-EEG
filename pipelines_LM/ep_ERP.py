@@ -34,9 +34,9 @@ python ep_ERP.py
 
 #CHANGE THIS AS THE EXPERIMENT PROGRESSES
 #----------------------------------------
-subjects_to_process = [ '04']
-periods = ['pre']
-task = 'motor'
+subjects_to_process = [ '12']
+periods = ['pre', 'post']
+task = 'listen'
 
 overwrite = True
 

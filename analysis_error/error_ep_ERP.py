@@ -21,7 +21,7 @@ from plot_utils import *
 
 #CHANGE THIS AS THE EXPERIMENT PROGRESSES
 #----------------------------------------
-subjects_to_process = ['01', '04']
+subjects_to_process = ['12']
 periods = ['pre', 'post']
 
 overwrite = True #overwrite existing files
