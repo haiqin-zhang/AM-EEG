@@ -58,3 +58,35 @@ def p_times(arrays_to_compare, channels = 'all'):
 
 
 
+""" 
+calculate p values of differences between the pre- and post-training ERPs
+currently using ind samples t-test but should reconsider this...
+
+arrays_to_compare: a list of 2 arrays to compare. Like [test_pre, test_post]
+returns: a list of p values the , one p value for each time point
+"""
+
+
+def p_chs(arrays_to_compare, time_idx):
+    p_values = []
+ 
+    for channel in range(0, 64):
+        array1 = arrays_to_compare[0][:, channel, time_idx]
+        array2 = arrays_to_compare[1][:, channel, time_idx]
+        res = ttest_ind(array1, array2)
+        p_values.append(res.pvalue)
+        
+    return p_values
+
+""" 
+Process the p-values so that when they're plotted as a topomap, the small values (i.e. the most significant) are plotted as red
+Also anything > 0.05 becomes 0 
+"""
+
+def scale_p_channels(p_values, threshold = 0.95):
+    scaled_values = [1-x for x in p_values]
+    scaled_values = [0 if x < threshold else x for x in scaled_values]
+
+
+    return scaled_values
+
