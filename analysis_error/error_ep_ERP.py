@@ -21,7 +21,7 @@ from plot_utils import *
 
 #CHANGE THIS AS THE EXPERIMENT PROGRESSES
 #----------------------------------------
-subjects_to_process = ['01', '04']
+subjects_to_process = ['01', '04', '05', '06', '07', '08', '09', '10','11', '12']
 periods = ['pre', 'post']
 
 overwrite = True #overwrite existing files
@@ -35,6 +35,10 @@ with open('../utils/ch_names.pkl', 'rb') as file:
 
 ch_names_72 = ch_names_all[0:72]
 downfreq = 128
+
+#times for cropping ERPs
+erp_begin = -0.2
+erp_end = 0.5
 
 
 #======================================================================================
@@ -112,13 +116,13 @@ for folder in sorted(os.listdir(pp_dir)):
         #--------------------------------------------
         #               SET UP EVOKEDS OBJECTS
         #--------------------------------------------
-        epochs = mne.Epochs(reconst_raw, t_keystrokes, tmin=-0.2, tmax=0.5, preload=True)
+        epochs = mne.Epochs(reconst_raw, t_keystrokes, tmin=erp_begin, tmax=erp_end, preload=True)
         evoked = epochs.average()
 
         #keystrokes in the inverted mapping
         inv_sections = find_sections(reconst_raw, t_inv, t_modeswitch)
         inv_keystrokes = find_keystrokes(reconst_raw, t_keystrokes, inv_sections)
-        epochs_inv = mne.Epochs(reconst_raw, inv_keystrokes, tmin=-0.3, tmax=0.7, preload=True)
+        epochs_inv = mne.Epochs(reconst_raw, inv_keystrokes, tmin=erp_begin, tmax=erp_end, preload=True)
         inv_evoked = epochs_inv.average()
         if plot:
             fig = inv_evoked.plot(titles = f'Keystrokes - inverted mapping {period} sub{subject_ID}')
@@ -126,7 +130,7 @@ for folder in sorted(os.listdir(pp_dir)):
         #keystrokes in shinv mapping
         shinv_sections = find_sections(reconst_raw, t_shinv, t_modeswitch)
         shinv_keystrokes = find_keystrokes(reconst_raw, t_keystrokes, shinv_sections)
-        epochs_shinv = mne.Epochs(reconst_raw, shinv_keystrokes, tmin=-0.3, tmax=0.7, preload=True)
+        epochs_shinv = mne.Epochs(reconst_raw, shinv_keystrokes, tmin=erp_begin, tmax=erp_end, preload=True)
         shinv_evoked = epochs_shinv.average()
         if plot:
             fig = shinv_evoked.plot(titles = f'Shifted keystrokes {period} sub{subject_ID}')
@@ -134,7 +138,7 @@ for folder in sorted(os.listdir(pp_dir)):
         #keystrokes in normal mapping
         norm_sections = find_sections(reconst_raw, t_norm, t_modeswitch)
         norm_keystrokes = find_keystrokes(reconst_raw, t_keystrokes, norm_sections)
-        epochs_norm = mne.Epochs(reconst_raw, norm_keystrokes, tmin=-0.3, tmax=0.7, preload=True)
+        epochs_norm = mne.Epochs(reconst_raw, norm_keystrokes, tmin=erp_begin, tmax=erp_end, preload=True)
         norm_evoked = epochs_norm.average()
         if plot:
             fig = norm_evoked.plot(titles = f'Keystrokes - normal mapping {period} sub{subject_ID}')
