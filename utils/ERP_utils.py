@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.stats import ttest_rel, ttest_1samp, ttest_ind
+from scipy.stats import ttest_rel, ttest_1samp, ttest_ind, kstest, wilcoxon
 import pickle
 
 #get channel names
@@ -25,7 +25,7 @@ calculate p values of differences between the pre- and post-training ERPs
 currently using ind samples t-test but should reconsider this...
 
 arrays_to_compare: a list of 2 arrays to compare. Like [test_pre, test_post]
-returns: a list of p values the , one p value for each time point
+returns: a list of p values, one p value for each time point
 """
 
 
@@ -56,6 +56,73 @@ def p_times(arrays_to_compare, channels = 'all'):
 
     return p_values
 
+"""
+KS test to determine whether the data is normally distributed. 
+Takes an array of shape [n_participants, n_timepoints] and determines whether distribution 
+is normal at each timepoint.
+Returns significance level of KS test averaged over all timepoints
+"""
+def gaussian_test(array):
+    p_values = []
+    for timepoint in range(0, array.shape[1]):
+        res = kstest(array[:,timepoint], 'norm')
+        p_values.append(res.pvalue)
+
+    p_values = np.array(p_values)
+    significance = p_values.mean()
+
+    if significance > 0.05: 
+        print("Distribution is normal. p = ", significance)
+    elif significance < 0.04:
+        print("Distribution is not normal. p = ", significance)
+
+    return significance
+
+"""
+Adaptation of scipy implmentation but comparing one sample with an expected mean of 0
+Only one input array needed
+returns the result of the wilcoxon test
+"""
+def wilcoxon_1samp(array):
+    pop_mean = np.zeros_like(array)
+    res = wilcoxon(array, pop_mean)
+    return res
+
+""" 
+calculate p values of differences between the pre- and post-training ERPs
+uses the within-subjects t-test
+
+array: preprocessed array containing the average ERP (post minus pre) for each subject
+returns: a list of p values, one p value for each time point
+"""
+
+def p_times_1sample(array, channels = 'all'):
+
+    if channels == 'all':
+        print('Calculating p-value over mean of all channels')
+        array_ch_mean = array.mean(axis = 1)
+    elif type(channels) == list:
+        print(f'Calculating p-value over {channels}')
+        p_ch_idx = ch_index(channels)
+        array = array[:, p_ch_idx]
+        array_ch_mean = array.mean(axis = 1)
+    else:
+        print('Valid channel arguments: type list')
+        exit
+
+    #test normality
+    ks = gaussian_test(array_ch_mean)
+
+    p_values = []
+    ks = 1
+    for timepoint in range(0, array.shape[2]):
+        if ks > 0.05:
+            res = ttest_1samp(array_ch_mean[:, timepoint], popmean = 0)       
+        elif ks < 0.05:
+            res = wilcoxon_1samp(array_ch_mean[:, timepoint])
+        p_values.append(res.pvalue)
+    
+    return p_values
 
 
 """ 
