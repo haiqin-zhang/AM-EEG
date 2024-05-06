@@ -114,7 +114,7 @@ def p_times_1sample(array, channels = 'all'):
     ks = gaussian_test(array_ch_mean)
 
     p_values = []
-    ks = 1
+   # ks = 1
     for timepoint in range(0, array.shape[2]):
         if ks > 0.05:
             res = ttest_1samp(array_ch_mean[:, timepoint], popmean = 0)       
