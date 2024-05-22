@@ -4,6 +4,8 @@
 *.wav
 *.mat
 *.fif
+*.npy
+
 
 #folders
 test_data/
