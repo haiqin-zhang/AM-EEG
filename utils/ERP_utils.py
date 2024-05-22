@@ -124,6 +124,15 @@ def p_times_1sample(array, channels = 'all'):
     
     return p_values
 
+"""
+This function is used to process the data so that it's ready for the 1 sample t-test. Takes the 
+subject averages for each condition, and subtracts them
+Returns an array of evoked data where the first dim is the number of subjects (supposedly)
+"""
+def find_diff_sa(evoked_list1, evoked_list2):
+    diff_evoked_list = [evoked1 - evoked2 for evoked1, evoked2 in zip(evoked_list1, evoked_list2)]
+    diff_evoked_sa = np.stack(diff_evoked_list)
+    return diff_evoked_sa
 
 """ 
 calculate p values of differences between the pre- and post-training ERPs
