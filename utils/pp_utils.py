@@ -127,6 +127,45 @@ def sort_events(events, clean = True):
     return events_2, events_3, events_4, events_5, events_6, trial_starts
 
 
+"""
+New version of sort_events that takes into account the new MIDI trigger box
+"""
+
+#for the config where the MIDI trigger is in all channels
+def sort_events_MIDI(events, clean = True):
+    #assert 65282 and 65284 and 65288 and 65296 in events[:,2], "Not all trig categories are present"
+
+    if 2 and 4 and 8 and 16 and 65280 in events[:,2]:
+        print("All event types present")    
+    else:
+        print("Some event types missing. Check data.")
+
+    if clean == True:
+        events_2 = clean_triggers(events[events[:,2] == 2]) #t2 - keystrokes
+        events_3 = clean_triggers(events[events[:,2] == 4]) #t3
+        events_4 = clean_triggers(events[events[:,2] == 8]) #t4
+        events_5 = clean_triggers(events[events[:,2] == 16]) #t5 (it's also used for trial starts in subject 1, so there should be two far apart at the beginning)
+        events_6 = clean_triggers(events[events[:,2] == 4096]) #t6 (not used for anything in most subjects)
+        events_MIDI = clean_triggers(events[events[:,2] ==65280])
+
+        #get only the start triggers that are at least 11min 10 secs (670 s) mins apart
+        #motor and error trials are exactly 10 mins long. Passive listening is 11:05 mins.
+        
+        
+    #FIX THIS
+    else:
+        events_2 = events[events[:,2] == 2]
+        events_3 = events[events[:,2] == 4]
+        events_4 = events[events[:,2] == 8]
+        events_5 = events[events[:,2] == 16]
+        events_6 = events[events[:,2] == 4096]
+        events_MIDI = events[events[:,2] == 65280]
+
+    trial_starts = clean_triggers(events[events[:,2] == 16], threshold = 1372160) 
+
+
+    return events_2, events_3, events_4, events_5, events_6, trial_starts, events_MIDI
+
 #======================================================================================
 #                       FINDING/CLASSIFYING KEYSTROKES
 #======================================================================================

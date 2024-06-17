@@ -21,8 +21,9 @@ from plot_utils import *
 
 #CHANGE THIS AS THE EXPERIMENT PROGRESSES
 #----------------------------------------
-subjects_to_process = ['01', '04', '05', '06', '07', '08', '09', '10','11', '12']
+subjects_to_process = ['14']
 periods = ['pre', 'post']
+keystroke_trigs = 'MIDI'
 
 overwrite = True #overwrite existing files
 plot = False
@@ -106,7 +107,13 @@ for folder in sorted(os.listdir(pp_dir)):
         #               SET UP TRIGGERS
         #--------------------------------------------
         events_arr = make_raw_events(events_sv)
-        t_keystrokes = clean_triggers(events_arr[events_arr[:, 2]==2])
+
+        if keystroke_trigs == 'MIDI':
+            t_keystrokes = clean_triggers(events_arr[events_arr[:, 2]==6])
+        else:
+            t_keystrokes = clean_triggers(events_arr[events_arr[:, 2]==2])
+
+
         t_inv = clean_triggers(events_arr[events_arr[:, 2]==3])
         t_shinv = clean_triggers(events_arr[events_arr[:, 2]==4])
         t_norm = clean_triggers(events_arr[events_arr[:, 2]==5])

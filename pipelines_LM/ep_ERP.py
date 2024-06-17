@@ -34,9 +34,10 @@ python ep_ERP.py
 
 #CHANGE THIS AS THE EXPERIMENT PROGRESSES
 #----------------------------------------
-subjects_to_process = [ '12']
+subjects_to_process = [ '14']
 periods = ['pre', 'post']
 task = 'listen'
+keystroke_trigs = 'MIDI'
 
 overwrite = True
 
@@ -114,7 +115,13 @@ for folder in sorted(os.listdir(pp_dir)):
         #               SET UP TRIGGERS
         #--------------------------------------------
         events_arr = make_raw_events(events_sv)
-        t_keystrokes = clean_triggers(events_arr[events_arr[:, 2]==2])
+
+
+            
+        if keystroke_trigs == 'MIDI' and task == 'motor':
+            t_keystrokes = clean_triggers(events_arr[events_arr[:, 2]==6])
+        else:
+            t_keystrokes = clean_triggers(events_arr[events_arr[:, 2]==2])
 
         
         #--------------------------------------------
