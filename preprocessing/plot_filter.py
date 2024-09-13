@@ -14,7 +14,8 @@ freq_high  = 8
 ftype = 'butter'
 order = 3
 
-root_dir = "/mnt/c/Users/gcantisani/Documents/Datasets/Dataset_song/EEG_recordings/responses/"
+#root_dir = "/mnt/c/Users/gcantisani/Documents/Datasets/Dataset_song/EEG_recordings/responses/"
+root_dir = '/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/data_raw'
 files = glob.glob(os.path.join(root_dir, '**', '*.bdf'), recursive=True)
 for idx, file in enumerate(files):
     print(idx, file.split('/')[-1])
@@ -38,4 +39,4 @@ flim = (1., eeg.info['sfreq'] / 2.)  # frequencies
 dlim = (-0.001, 0.001)  # delays
 kwargs = dict(flim=flim, dlim=dlim)
 mne.viz.plot_filter(filter_params, eeg.info['sfreq'], compensate=True, **kwargs)
-plt.savefig("../../bpf_ffilt_shape.png") 
+#plt.savefig("../../bpf_ffilt_shape.png") 

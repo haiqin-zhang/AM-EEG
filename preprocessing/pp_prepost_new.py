@@ -21,11 +21,11 @@ from pp_utils import *
 #======================================================================================
 #                        SPECIFY SUBJECTS AND WHAT PART OF THE EXPERIMENT
 #======================================================================================
-subjects_to_process = ['14']
-periods = ['pre', 'post']
+subjects_to_process = ['17']
+periods = ['pre']
 
 
-bad_chs = [] #put the bad channel names here; process subjects with bad channels separately
+bad_chs = ['POz', 'PO3'] #put the bad channel names here; process subjects with bad channels separately
 
 #======================================================================================
 #                        INITIALIZE DIRECTORIES

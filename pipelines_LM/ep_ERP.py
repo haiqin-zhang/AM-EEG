@@ -34,9 +34,9 @@ python ep_ERP.py
 
 #CHANGE THIS AS THE EXPERIMENT PROGRESSES
 #----------------------------------------
-subjects_to_process = [ '14']
-periods = ['pre', 'post']
-task = 'listen'
+subjects_to_process = ['17']
+periods = ['post']
+task = 'motor'
 keystroke_trigs = 'MIDI'
 
 overwrite = True
