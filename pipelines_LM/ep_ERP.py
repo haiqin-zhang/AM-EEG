@@ -34,12 +34,12 @@ python ep_ERP.py
 
 #CHANGE THIS AS THE EXPERIMENT PROGRESSES
 #----------------------------------------
-subjects_to_process = ['17']
-periods = ['post']
+subjects_to_process = ['20', '21']
+periods = ['pre', 'post']
 task = 'motor'
 keystroke_trigs = 'MIDI'
 
-overwrite = True
+overwrite = False
 
 #----------------------------------------
 with open('../utils/ch_names.pkl', 'rb') as file:

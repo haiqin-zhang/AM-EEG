@@ -15,7 +15,7 @@ from pp_utils import *
 #======================================================================================
 #                        SPECIFY SUBJECTS AND WHAT PART OF THE EXPERIMENT
 #======================================================================================
-subjects_to_process = ['12']
+subjects_to_process = ['19']
 periods = ['pre', 'post']
 
 

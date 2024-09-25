@@ -17,6 +17,7 @@ stimuli/
 old_files/
 trig_test_2/
 **figures/
+data_eog_ica/
 
 #specific files
 segment_and_preprocess_giorgia.py
