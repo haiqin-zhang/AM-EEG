@@ -1,8 +1,6 @@
 """
-Works on the preprocessed and cropped NON-NORMALIZED data (the normalized data has a different structure so won't work here)
-
+mTRF on normalized eeg data. Expects eeg data to be a list of np arrays with dimensions n_times, n_channels
 """
-
 
 import mne
 from mne.preprocessing import ICA
@@ -38,16 +36,16 @@ import os
 #PARAMETERS AND SUBJECTS
 ########################################################
 subjects_to_process = [
-                        #'01', '02', '04', '05', '06', '07', '08', '09', '10', 
-                    #  '11', '12', '13','14','15','16', '17', '18'
-                      #  '19'
-                        #'20', '21'
+                        '01', '02'
+                    ,'04', '05', '06', '07', '08', '09', '10'
+                      ,'11', '12', '13','14','15','16', '17', '18'
+                        ,'19'
+                        , '20', '21'
     
-    '02', '06', '07', '12', '13', '14', '15', '17', '18', '21'
                        ]
 
-periods = ['pre', 'post']
-features = 'AM' #AM or onsets
+periods = ['post']
+features = 'onsets' #AM or onsets
 
 overwrite = False
 n_segments = 12
@@ -64,24 +62,36 @@ ch_names_72 = ch_names_all[0:72]
 fs = 128
 
 
-for subject in subjects_to_process:
-    for period in periods:
+for period in periods:
+    eeg_path = f'/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/normalization/normalized_concat_listen_{period}.mat'
+    events_path = f'/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/normalization/events_normalized_concat_listen_{period}.mat'
+
+     #LOAD PREPROCESSED DATA
+    data_eeg = loadmat(eeg_path)
+    data_events = loadmat(events_path)
+    
+
+    for i, subject in enumerate(subjects_to_process):
         #OPENING, PROCESSING EEG DATA
         #######################################################
-        #directories
-        eeg_path = f'/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/data_eog_ica/{subject}/eeg_eogica_listen_{period}_{subject}.mat'
-        mTRF_path = '/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/analysis_listen/listen_mTRF_data_surprisal'
 
-        mTRF_file = f'{mTRF_path}/listen_{period}_{subject}.mat'
+        eeg = data_eeg['eeg_normalized'][i]
+        events_sv = data_events['events_original'][i].T
+
+        #directories
+        
+        
+        mTRF_path = f'/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/analysis_listen/listen_mTRF_data_normalized_{features}'
+        if not os.path.exists(mTRF_path):
+            os.makedirs(mTRF_path)
+            print('dir made')
+
+        mTRF_file = f'{mTRF_path}/mTRF_normalized_listen_{period}_{subject}.mat'
         if overwrite == False and os.path.exists(mTRF_file): 
             print('mTRF files already exist. Overwrite not activated.')
             continue
 
-        #LOAD PREPROCESSED DATA
-        data = loadmat(eeg_path)
-        eeg = data['eeg']
-        events_sv = data['events']
-
+       
 
         #OPENING EVENTS
         #################################
@@ -92,7 +102,7 @@ for subject in subjects_to_process:
 
         onsets_sv = np.zeros_like(events_sv[0])
         onsets_sv[onset_indices] = 1
-
+ 
         #SURPRISAL
         #idyompy for now but can try DREX
         idyompy_surprisal = loadmat('idyompy_reps.mat')
@@ -124,7 +134,7 @@ for subject in subjects_to_process:
 
 
         #stacking stimulus segments
-        AM_sv = np.vstack([onsets_sv, surprisal_sv]).T
+        AM_sv = np.vstack([onsets_sv, surprisal_sv])
         AM_segments = segment(AM_sv, n_segments)
 
 
@@ -147,6 +157,7 @@ for subject in subjects_to_process:
 
 
         #save mTRF
-        savemat(f'{mTRF_path}/listen_{period}_{subject}.mat', {'weights': fwd_trf.weights, 'r': r_fwd})
+        savemat(mTRF_file, {'weights': fwd_trf.weights, 'r': r_fwd})
+
 
 
