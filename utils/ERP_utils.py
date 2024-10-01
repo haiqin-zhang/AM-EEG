@@ -1,6 +1,8 @@
 import numpy as np
 from scipy.stats import ttest_rel, ttest_1samp, ttest_ind, kstest, wilcoxon
 import pickle
+import mne
+import pandas as pd
 
 #get channel names
 with open('../utils/ch_names.pkl', 'rb') as file:
@@ -166,3 +168,55 @@ def scale_p_channels(p_values, threshold = 0.95):
 
     return scaled_values
 
+def compute_power(epochs, tmin = 0, tmax = 0.25, bands=['delta', 'theta', 'alpha', 'beta', 'gamma', 'all'], method = 'welch'):
+    """
+    Returns a DataFrame with power computed over each frequency band for given epochs.
+    
+    Parameters
+    ----------
+    epochs : mne.Epochs
+        The epochs for which to compute the PSD and power.
+    bands : list of str, optional
+        List of frequency bands to compute power for. Default is ['delta', 'alpha'].
+        
+    Returns
+    -------
+    df : pd.DataFrame
+        DataFrame where each column represents the power in a different frequency band.
+    """
+
+    freqbands = {'delta': [0.5, 4], 
+                 'theta': [4, 8],
+                 'alpha': [8, 12],
+                 'beta': [12, 30],
+                 'gamma': [30, 45],
+                 'all': [0.5, 45]
+                }
+
+    
+    power_dict = {}
+    for key in bands:
+        if key not in freqbands:
+            continue  
+        fmin, fmax = freqbands[key]
+
+        psd = mne.Epochs.compute_psd(epochs, 
+                                     method = method,
+                                     fmin=fmin, 
+                                     fmax=fmax, 
+                                     tmin = tmin, 
+                                     tmax = tmax)
+        
+        psd_ave_64 = psd.average() #average over epochs
+        psd_ave = np.mean(psd_ave_64.get_data(), axis = 0) #average over channel
+
+        #integrate PSD
+        power = np.trapz(psd_ave)
+
+        # save PSD
+        power_dict[key] = power
+
+
+    df = pd.DataFrame([power_dict])
+
+    return df

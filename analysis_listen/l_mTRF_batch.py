@@ -70,7 +70,7 @@ for subject in subjects_to_process:
         #######################################################
         #directories
         eeg_path = f'/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/data_eog_ica/{subject}/eeg_eogica_listen_{period}_{subject}.mat'
-        mTRF_path = '/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/analysis_listen/listen_mTRF_data_surprisal'
+        mTRF_path = f'/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/analysis_listen/listen_mTRF_data/listen_mTRF_data_{features}'
 
         mTRF_file = f'{mTRF_path}/listen_{period}_{subject}.mat'
         if overwrite == False and os.path.exists(mTRF_file): 

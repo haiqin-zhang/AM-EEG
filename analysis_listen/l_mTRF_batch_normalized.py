@@ -1,5 +1,7 @@
 """
 mTRF on normalized eeg data. Expects eeg data to be a list of np arrays with dimensions n_times, n_channels
+
+TO ADD: online normalization of events 
 """
 
 import mne
@@ -27,6 +29,7 @@ from pp_utils import *
 from plot_utils import *
 from mTRF_utils import *
 from midi_utils import *
+from normalize_eeg import *
 
 import pickle
 import os
@@ -36,18 +39,20 @@ import os
 #PARAMETERS AND SUBJECTS
 ########################################################
 subjects_to_process = [
-                        '01', '02'
-                    ,'04', '05', '06', '07', '08', '09', '10'
+                       '01', '02'
+                    ,'04', '05',
+                     '06', '07', '08', '09', '10'
                       ,'11', '12', '13','14','15','16', '17', '18'
                         ,'19'
                         , '20', '21'
-    
                        ]
 
-periods = ['post']
+
+periods = ['pre','post']
+task = 'listen'
 features = 'onsets' #AM or onsets
 
-overwrite = False
+overwrite = True
 n_segments = 12
 
 
@@ -63,25 +68,19 @@ fs = 128
 
 
 for period in periods:
-    eeg_path = f'/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/normalization/normalized_concat_listen_{period}.mat'
-    events_path = f'/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/normalization/events_normalized_concat_listen_{period}.mat'
-
-     #LOAD PREPROCESSED DATA
-    data_eeg = loadmat(eeg_path)
-    data_events = loadmat(events_path)
-    
+    eeg_list_normalized, stimuli_list_normalized = normalize_eeg_stimuli(subjects_to_process, task, period, features = features)
 
     for i, subject in enumerate(subjects_to_process):
         #OPENING, PROCESSING EEG DATA
         #######################################################
 
-        eeg = data_eeg['eeg_normalized'][i]
-        events_sv = data_events['events_original'][i].T
+        eeg = eeg_list_normalized[i]
+        stimuli_sv = stimuli_list_normalized[i]
 
         #directories
         
         
-        mTRF_path = f'/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/analysis_listen/listen_mTRF_data_normalized_{features}'
+        mTRF_path = f'/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/analysis_listen/listen_mTRF_data/listen_mTRF_data_normalized_{features}'
         if not os.path.exists(mTRF_path):
             os.makedirs(mTRF_path)
             print('dir made')
@@ -91,35 +90,6 @@ for period in periods:
             print('mTRF files already exist. Overwrite not activated.')
             continue
 
-       
-
-        #OPENING EVENTS
-        #################################
-        #ONSET
-        events_arr = make_raw_events(events_sv)
-        events_keystrokes = clean_triggers(events_arr[events_arr[:, 2]==2])
-        onset_indices = events_keystrokes[:,0]
-
-        onsets_sv = np.zeros_like(events_sv[0])
-        onsets_sv[onset_indices] = 1
- 
-        #SURPRISAL
-        #idyompy for now but can try DREX
-        idyompy_surprisal = loadmat('idyompy_reps.mat')
-        surprisal_idyompy_rep4 = idyompy_surprisal['rep4'][0]
-
-        surprise_type = surprisal_idyompy_rep4
-
-        #make support vector for surprisal
-        index_surprisal = 0
-        surprisal_sv  = []
-        for num in onsets_sv:
-            if num == 1:
-                surprisal_sv.append(surprise_type[index_surprisal])
-                index_surprisal += 1
-            else:
-                surprisal_sv.append(num)
-        surprisal_sv = np.array(surprisal_sv)
 
         #################################
         # TO DO: ADD SURPRISAL, MIDI VALUES, AND OTHERS
@@ -129,13 +99,7 @@ for period in periods:
         
         #SEGMENTING DATA
         eeg_segments = segment(eeg, n_segments)
-        onset_segments = segment(onsets_sv, n_segments) 
-        surprisal_segments = segment(surprisal_sv, n_segments)
-
-
-        #stacking stimulus segments
-        AM_sv = np.vstack([onsets_sv, surprisal_sv])
-        AM_segments = segment(AM_sv, n_segments)
+        events_segments = segment(stimuli_sv, n_segments)
 
 
         #TRAIN TRF
@@ -143,16 +107,12 @@ for period in periods:
 
         
         tmin, tmax =-0.1, 0.3  # range of time lag
-        regularizations= [0.0001, 0.01, 1, 100, 10000, 1000000]
+        regularizations= [0.0001, 1, 100, 10000, 1000000]
 
-        if features == 'AM': 
-            stimulus = AM_segments
-        elif features == 'onsets':
-            stimulus = onset_segments
 
         #training TRF model
         fwd_trf = TRF(direction=1)
-        r_fwd, lambdas = nested_crossval(fwd_trf, stimulus, eeg_segments, fs, tmin, tmax, regularizations)
+        r_fwd, lambdas = nested_crossval(fwd_trf, events_segments, eeg_segments, fs, tmin, tmax, regularizations)
 
 
 

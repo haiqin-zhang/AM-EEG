@@ -63,7 +63,8 @@ def normalize_stimuli(stimuli):
     else:
         raise Exception('Data should be a list of numpy arrays with dimesions n_samples x n_channels')
 
-    feats_max = np.max(stimuli_concatenated, axis=0)
+    #feats_max = np.max(stimuli_concatenated, axis=0)
+    feats_max = np.max(stimuli_concatenated)
     stimuli = [stimulus / feats_max for stimulus in stimuli]
 
     return stimuli
