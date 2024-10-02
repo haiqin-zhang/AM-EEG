@@ -149,4 +149,8 @@ for subject in subjects_to_process:
         #save mTRF
         savemat(f'{mTRF_path}/listen_{period}_{subject}.mat', {'weights': fwd_trf.weights, 'r': r_fwd})
 
+        """
+        This only saves the mTRF but consider saving the entire fwd_trf
+        """
+
 

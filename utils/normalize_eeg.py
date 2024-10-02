@@ -24,7 +24,7 @@ def normalize_eeg_stimuli(subjects_to_process, task, period, features = 'AM', ov
     """
     Normalizes eeg responses across subjects.
     Option to save the normalized lists of responses and stimuli
-    Features: 'AM' to include onsets and surprisal, or 'onsets' to include onset only
+    Features: 'AM' to include onsets and surprisal, or 'onsets' to include onset only, or 'suprisal' 
 
     Returns: eeg_list_normalized (a list of n_timepoints x n_channel arrays)
 
@@ -78,37 +78,41 @@ def normalize_eeg_stimuli(subjects_to_process, task, period, features = 'AM', ov
         onsets_sv = np.zeros_like(events_sv[0])
         onsets_sv[onset_indices] = 1
 
-        # SURPRISAL
-        ########################
-        #loading surprisal values from DREX
-        with open ('/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/analysis_listen/mTRF_stimuli/listen_surprisal_drex.pkl', 'rb') as f:
-            surprisal_drex = pickle.load(f)
-        surprisal_drex = surprisal_drex.squeeze()
-
-        #make support vector
-        index_surprisal = 0
-        surprisal_sv  = []
-        for num in onsets_sv:
-            if num == 1:
-                surprisal_sv.append(surprisal_drex[index_surprisal])
-                index_surprisal += 1
-            else:
-                surprisal_sv.append(num)
-        surprisal_sv = np.array(surprisal_sv)
-
-       
         # STACKING STIMULUS FEATURES
-        if features == 'AM':
-            stacked_sv = np.vstack([onsets_sv, surprisal_sv])
+        if features == 'AM' or features == 'surprisal':
+            # SURPRISAL vector
+            ########################
+            #loading surprisal values from DREX
+            with open ('/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/analysis_listen/mTRF_stimuli/listen_surprisal_drex.pkl', 'rb') as f:
+                surprisal_drex = pickle.load(f)
+            surprisal_drex = surprisal_drex.squeeze()
+
+            #make support vector
+            index_surprisal = 0
+            surprisal_sv  = []
+            for num in onsets_sv:
+                if num == 1:
+                    surprisal_sv.append(surprisal_drex[index_surprisal])
+                    index_surprisal += 1
+                else:
+                    surprisal_sv.append(num)
+            surprisal_sv = np.array(surprisal_sv)
+
+            if features == 'AM':
+                stacked_sv = np.vstack([onsets_sv, surprisal_sv])
+            elif features == 'surprisal':
+                stacked_sv = np.vstack([surprisal_sv])
+        
         elif features == 'onsets':
-            stacked_sv = onsets_sv
+            stacked_sv = np.vstack([onsets_sv])
 
         
         #append to events master list
         stimuli_list.append(stacked_sv.T)
 
     eeg_list_normalized = normalize_responses(eeg_list)
-    stimuli_list_normalized = normalize_stimuli(stimuli_list)
+
+    stimuli_list_normalized = normalize_stimuli(stimuli_list, axis = 'ind')
 
     #SAVE FILES
     #======================================================================================

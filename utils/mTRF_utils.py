@@ -43,7 +43,7 @@ def normalize_responses(responses):
     return responses
 
 
-def normalize_stimuli(stimuli):
+def normalize_stimuli(stimuli, axis = 'all'):
     """Function that normalizes the stimuli data
     Data is normalized by dividing each feature
     by the maximum value of that feature
@@ -63,8 +63,38 @@ def normalize_stimuli(stimuli):
     else:
         raise Exception('Data should be a list of numpy arrays with dimesions n_samples x n_channels')
 
-    #feats_max = np.max(stimuli_concatenated, axis=0)
-    feats_max = np.max(stimuli_concatenated)
+    if axis == 'ind':
+        feats_max = np.max(stimuli_concatenated, axis=0)
+    elif axis == 'all':
+        feats_max = np.max(stimuli_concatenated)
     stimuli = [stimulus / feats_max for stimulus in stimuli]
 
     return stimuli
+
+
+def shuffle_surprisal(original_stimuli):
+    """
+    Shuffles surprisal values (but NOT the onset positions) in a stimuli support vector. 
+    stimuli: a vector of shape timepoints x features (2 features: onset and stimuli)
+        (if working with normalized stimuli arrays, input the index: stimuli_list_normalized[i])
+    
+    ----
+    returns the stimuli array 
+    """
+
+    assert isinstance(original_stimuli, np.ndarray)
+    assert original_stimuli.shape[1] == 1 or original_stimuli.shape[1] == 2
+    
+    if original_stimuli.shape[1] == 2:
+        stimuli_toshuffle = original_stimuli.copy()[:,1] #if the stimulus has both the onset and surprisal vectors stacked, shuffle the second one
+    else:
+        stimuli_toshuffle = original_stimuli.copy()
+        
+    # Find non-zero values and their indices
+    nonzero_indices = np.nonzero(stimuli_toshuffle) 
+    nonzero_values = stimuli_toshuffle[nonzero_indices]
+
+    np.random.shuffle(nonzero_values)
+    stimuli_toshuffle[nonzero_indices] = nonzero_values
+
+    return stimuli_toshuffle
