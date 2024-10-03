@@ -41,15 +41,18 @@ subjects_to_process = ['01', '02', '03',
 
 periods = ['pre','post']
 task = 'listen'
-features = 'surprisal' #AM, onsets, or surprisal
+features = 'onsets' #AM, onsets, or surprisal
 
 overwrite = True
 n_segments = 10
-shuffle_onsets = False #TO IMPLEMENT LATER: shuffle the positions of 1s in the onsets vector
-shuffle_surprisals = True #shuffle the surprisal values but NOT the position of the onsets (i.e. nonzero values are still in the same spot)
-if shuffle_surprisals:
-    shuffle_status = 'shuffled_surprisals'
-elif shuffle_onsets:
+
+#for now, only set ONE of onsets_shuffled and surprisals_shuffled to true, and only test them on mTRFs with just one feature
+onsets_shuffled = True #TO IMPLEMENT LATER: shuffle the positions of 1s in the onsets vector
+surprisals_shuffled = False #shuffle the surprisal values but NOT the position of the onsets (i.e. nonzero values are still in the same spot)
+
+if surprisals_shuffled:
+    shuffle_status = 'shuffled_surprisal'
+elif onsets_shuffled:
     shuffle_status = 'shuffled_onsets'
 else:
     shuffle_status = ''
@@ -82,8 +85,10 @@ for period in periods:
         print(f'Processing mTRF for subject {subject}')
         eeg = eeg_list_normalized[i]
         
-        if shuffle_surprisals:
+        if surprisals_shuffled:
             stimuli_sv = shuffle_surprisal(stimuli_list_normalized[i])
+        elif onsets_shuffled:
+            stimuli_sv = shuffle_onsets(stimuli_list_normalized[i])
         else:
             stimuli_sv = stimuli_list_normalized[i]
 

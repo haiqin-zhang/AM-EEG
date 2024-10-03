@@ -98,3 +98,30 @@ def shuffle_surprisal(original_stimuli):
     stimuli_toshuffle[nonzero_indices] = nonzero_values
 
     return stimuli_toshuffle
+
+
+def shuffle_onsets(original_stimuli):
+    """ 
+    Shuffles the POSITION of the onsets but not their values
+    original_stimuli: nd array. 
+        Future: might add a way to handle arrays with Onset vector expected to occpy the first row of the array (array[:,0])
+    ----
+    Returns: an array of 0s and 1s with the same number of 1s as in the original stimulus
+
+    """
+    assert isinstance(original_stimuli, np.ndarray)
+    assert original_stimuli.shape[1] < 2 #
+
+#ensuring that the dimensions are correct, if it's a support vector with more than one feature such as with onset+suprisal, takes the first feature only
+    if original_stimuli.shape[1] == 1:
+        shuffled_stimuli = original_stimuli.copy()
+        #shuffle positions of onset
+        np.random.shuffle(shuffled_stimuli)
+
+#going to ignore how to deal with multiple features for now
+    """ elif original_stimuli.shape[1] == 2: 
+        shuffled_stimuli = original_stimuli.copy()
+        np.random.shuffle(shuffled_stimuli[:,0])
+    """
+
+    return shuffled_stimuli

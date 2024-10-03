@@ -4,11 +4,25 @@ import pickle
 import mne
 import pandas as pd
 
+import glob
+import os
+
 #get channel names
-with open('../utils/ch_names.pkl', 'rb') as file:
+"""with open('../utils/ch_names.pkl', 'rb') as file:
     ch_names_all = pickle.load(file)
 
-ch_names_72 = ch_names_all[0:72]
+ch_names_72 = ch_names_all[0:72]"""
+
+def load_channels():
+    #get channel names
+    with open('../utils/ch_names.pkl', 'rb') as file:
+        ch_names_all = pickle.load(file)
+
+    ch_names_64 = ch_names_all[0:64]
+    ch_names_72 = ch_names_all[0:72]
+    
+
+    return ch_names_64, ch_names_72
 
 """
 find index of a channel in the data array given the channel name. Relies on the preloaded list of channels.
@@ -220,3 +234,101 @@ def compute_power(epochs, tmin = 0, tmax = 0.25, bands=['delta', 'theta', 'alpha
     df = pd.DataFrame([power_dict])
 
     return df
+
+
+def load_evoked_epochs(subjects_to_process, task):
+
+    evoked_dir = f'/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/analysis_{task}/{task}_ERP_data'
+    epochs_dir = f'/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/analysis_{task}/{task}_epochs_data'
+
+    """
+    Loads the epochs and evoked .fif files and organizes them into lists to use for plotting and analysis
+    subjects_to_process: list of subjects where each element is a string. e.g. ['01', '02']
+
+    ---
+    Returns concatenated epochs and evoked lists: concat_epochs_pre, concat_evoked_pre, concat_epochs_post, concat_evoked_post
+    """
+    evoked_list_pre = []
+    epochs_list_pre = []
+    evoked_list_post = []
+    epochs_list_post = []
+
+    #subject averages
+    #epochs_list_pre_sa =[]
+
+    #for file in sorted(os.listdir(evoked_dir)):
+    assert isinstance (subjects_to_process, list)
+    for subject in subjects_to_process:
+        print('Processing subject: ', subject)
+
+        file_evokeds_pre = glob.glob(os.path.join(evoked_dir, f'{task}_ERP_pre_{subject}.fif'))[0]
+        file_epochs_pre = glob.glob(os.path.join(epochs_dir, f'{task}_epochs_pre_{subject}.fif'))[0]
+    
+        evoked_pre = mne.read_evokeds(file_evokeds_pre)[0]
+        evoked_list_pre.append(evoked_pre)
+        epochs_pre = mne.read_epochs(file_epochs_pre)
+        epochs_list_pre.append(epochs_pre)
+
+        file_evokeds_post = glob.glob(os.path.join(evoked_dir, f'{task}_ERP_post_{subject}.fif'))[0]
+        file_epochs_post = glob.glob(os.path.join(epochs_dir, f'{task}_epochs_post_{subject}.fif'))[0]
+    
+        evoked_post = mne.read_evokeds(file_evokeds_post)[0]
+        evoked_list_post.append(evoked_post)
+        epochs_post = mne.read_epochs(file_epochs_post)
+        epochs_list_post.append(epochs_post)
+
+
+    concat_epochs_pre = mne.concatenate_epochs(epochs_list_pre)
+    concat_evoked_pre = mne.combine_evoked(evoked_list_pre, weights = 'equal')
+
+    concat_epochs_post = mne.concatenate_epochs(epochs_list_post)
+    concat_evoked_post = mne.combine_evoked(evoked_list_post, weights = 'equal')
+    
+    return (concat_epochs_pre, concat_evoked_pre, concat_epochs_post, concat_evoked_post)
+
+def load_epochs_bysubject(subjects_to_process, task):
+
+
+    """
+    Loads the epochs and evoked .fif files and organizes them into lists to use for plotting and analysis
+    subjects_to_process: list of subjects where each element is a string. e.g. ['01', '02']
+
+    ---
+    Returns concatenated epochs and evoked lists: concat_epochs_pre, concat_evoked_pre, concat_epochs_post, concat_evoked_post
+    """
+    
+    epochs_dir = f'/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/analysis_{task}/{task}_epochs_data'
+    epochs_df = pd.DataFrame(columns = ['subject', 'period', 'musician', 'epochs'])
+
+    #subject averages
+    #epochs_list_pre_sa =[]
+
+    #for file in sorted(os.listdir(evoked_dir)):
+    assert isinstance (subjects_to_process, list)
+
+    for subject in subjects_to_process:
+        print('Processing subject: ', subject)
+
+        if subject in musicians: 
+            musician = 1
+        else: 
+            musician = 0
+        for period in ['pre', 'post']:
+            file_epochs_pre = glob.glob(os.path.join(epochs_dir, f'{task}_epochs_{period}_{subject}.fif'))[0]
+            epochs_sub = mne.read_epochs(file_epochs_pre)
+            epochs_sub = np.mean(epochs_sub.get_data()[:, :64, :], axis = 0)
+            #epochs_sub = epochs_sub[np.newaxis, :, :]
+
+            df_sub = pd.DataFrame({
+                'subject': subject,
+                'period' : period,
+                'musician' : musician,
+                'epochs': [epochs_sub]
+            })
+            epochs_df = pd.concat([epochs_df, df_sub])
+
+
+    epochs_df.reset_index(drop=True, inplace=True)
+    return (epochs_df)
+
+
