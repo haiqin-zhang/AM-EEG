@@ -6,12 +6,8 @@ import pandas as pd
 
 import glob
 import os
+from update_sub_lists import*
 
-#get channel names
-"""with open('../utils/ch_names.pkl', 'rb') as file:
-    ch_names_all = pickle.load(file)
-
-ch_names_72 = ch_names_all[0:72]"""
 
 def load_channels():
     #get channel names
@@ -32,20 +28,46 @@ Returns a list of indices
 """
 
 def ch_index(ch_list): 
+    """
+    finds indices of channels given the channel names
+    ch_list: list of channel names, e.g. ['FCz', 'Cz']
+    ---
+    returns: list of channel indices
+    """
+    #get channel names which will be used for indexing channels
+    assert isinstance (ch_list, list)
+    with open('../utils/ch_names.pkl', 'rb') as file:
+        ch_names_all = pickle.load(file)
+
+    ch_names_72 = ch_names_all[0:72]
     ch_indices = [ch_names_72.index(item) if item in ch_names_72 else None for item in ch_list]
     return ch_indices
 
 
-""" 
-calculate p values of differences between the pre- and post-training ERPs
-currently using ind samples t-test but should reconsider this...
+def time_index(timepoints):
 
-arrays_to_compare: a list of 2 arrays to compare. Like [test_pre, test_post]
-returns: a list of p values, one p value for each time point
-"""
-
+    """
+    Finds the index in the data (which should be an array) given a list of timepoints expressed in seconds
+    ---
+    Returns a list of indices  
+    """
+    assert isinstance(timepoints, list)
+    with open('erp_times.pkl', 'rb') as file:
+        erp_times = pickle.load(file)
+    idx_list = []
+    for time in timepoints: 
+        time_idx = min(range(len(erp_times)), key=lambda i: abs(erp_times[i] - time))
+        idx_list.append(time_idx)
+    return idx_list
 
 def p_times(arrays_to_compare, channels = 'all'):
+    """ 
+    calculate p values of differences between the pre- and post-training ERPs
+    currently using ind samples t-test but should reconsider this...
+
+    arrays_to_compare: a list of 2 arrays to compare. Like [test_pre, test_post]
+    returns: a list of p values, one p value for each time point
+    """
     p_values = []
     if channels == 'all':
         print('Calculating p-value over mean of all channels')
@@ -290,15 +312,19 @@ def load_epochs_bysubject(subjects_to_process, task):
 
 
     """
-    Loads the epochs and evoked .fif files and organizes them into lists to use for plotting and analysis
+    Loads the epochs and evoked .fif files and organizes them into a dataframe to use for plotting and analysis
     subjects_to_process: list of subjects where each element is a string. e.g. ['01', '02']
 
+
     ---
-    Returns concatenated epochs and evoked lists: concat_epochs_pre, concat_evoked_pre, concat_epochs_post, concat_evoked_post
+    Returns a dataframe with columns 'subject', 'period', 'musician', and 'epochs'.
+        each row of ['epochs'] is an array of shape n_channels x n_timepoints, and is the average of all epochs from one subject
     """
     
     epochs_dir = f'/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/analysis_{task}/{task}_epochs_data'
     epochs_df = pd.DataFrame(columns = ['subject', 'period', 'musician', 'epochs'])
+    
+    good_listen_subjects, good_motor_subjects, musicians, nonmusicians = load_subject_lists()
 
     #subject averages
     #epochs_list_pre_sa =[]
@@ -316,7 +342,7 @@ def load_epochs_bysubject(subjects_to_process, task):
         for period in ['pre', 'post']:
             file_epochs_pre = glob.glob(os.path.join(epochs_dir, f'{task}_epochs_{period}_{subject}.fif'))[0]
             epochs_sub = mne.read_epochs(file_epochs_pre)
-            epochs_sub = np.mean(epochs_sub.get_data()[:, :64, :], axis = 0)
+            epochs_sub = np.mean(epochs_sub.get_data()[:, :64, :], axis = 0) #get only the eeg channels and average all trials per subject
             #epochs_sub = epochs_sub[np.newaxis, :, :]
 
             df_sub = pd.DataFrame({
