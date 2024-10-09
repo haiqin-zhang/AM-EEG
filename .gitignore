@@ -23,6 +23,7 @@ data_eog_ica/
 #specific files
 segment_and_preprocess_giorgia.py
 **/test.ipynb
+pipelines_LM/wavelets_demo.ipynb
 
 #caches and logs
 *.pyc

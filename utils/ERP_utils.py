@@ -8,6 +8,10 @@ import glob
 import os
 from update_sub_lists import*
 
+def load_erp_times():
+    with open('../utils/erp_times.pkl', 'rb') as file:
+        times = pickle.load(file)
+        return times
 
 def load_channels():
     #get channel names
