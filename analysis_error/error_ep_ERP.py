@@ -21,8 +21,8 @@ from plot_utils import *
 
 #CHANGE THIS AS THE EXPERIMENT PROGRESSES
 #----------------------------------------
-subjects_to_process = ['14']
-periods = ['pre', 'post']
+subjects_to_process = ['15']
+periods = ['pre']
 keystroke_trigs = 'MIDI'
 
 overwrite = True #overwrite existing files
