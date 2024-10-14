@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.stats import ttest_rel, ttest_1samp, ttest_ind, kstest, wilcoxon
+from statsmodels.stats.multitest import fdrcorrection
 import pickle
 import mne
 import pandas as pd
@@ -24,12 +25,7 @@ def load_channels():
 
     return ch_names_64, ch_names_72
 
-"""
-find index of a channel in the data array given the channel name. Relies on the preloaded list of channels.
 
-Takes a list of channel names, e.g. ['Cz']
-Returns a list of indices
-"""
 
 def ch_index(ch_list): 
     """
@@ -65,6 +61,7 @@ def time_index(timepoints):
     return idx_list
 
 def p_times(arrays_to_compare, channels = 'all'):
+    #### DOESN'T HAVE FDR CORRECTION, IMPLEMENT IT BEFORE USING THIS FUNCTION AGAIN
     """ 
     calculate p values of differences between the pre- and post-training ERPs
     currently using ind samples t-test but should reconsider this...
@@ -98,13 +95,14 @@ def p_times(arrays_to_compare, channels = 'all'):
 
     return p_values
 
-"""
-KS test to determine whether the data is normally distributed. 
-Takes an array of shape [n_participants, n_timepoints] and determines whether distribution 
-is normal at each timepoint.
-Returns significance level of KS test averaged over all timepoints
-"""
+
 def gaussian_test(array):
+    """
+    KS test to determine whether the data is normally distributed. 
+    Takes an array of shape [n_participants, n_timepoints] and determines whether distribution 
+    is normal at each timepoint.
+    Returns significance level of KS test averaged over all timepoints
+    """
     p_values = []
     for timepoint in range(0, array.shape[1]):
         res = kstest(array[:,timepoint], 'norm')
@@ -130,16 +128,16 @@ def wilcoxon_1samp(array):
     res = wilcoxon(array, pop_mean)
     return res
 
-""" 
-calculate p values of differences between the pre- and post-training ERPs
-uses the within-subjects t-test
 
-array: preprocessed array containing the average ERP (post minus pre) for each subject
-returns: a list of p values, one p value for each time point
-"""
+def p_times_1sample(array, channels = 'all', tmin = None, tmax = None):
+    """ 
+    calculate p values of differences between the pre- and post-training ERPs
+    uses the 1-sample t-test if normal and wilcoxon otherwise
 
-def p_times_1sample(array, channels = 'all'):
-
+    array: preprocessed array containing the average ERP (post minus pre) for each subject
+    ---
+    returns: a list of p values, one p value for each time point
+    """
     if channels == 'all':
         print('Calculating p-value over mean of all channels')
         array_ch_mean = array.mean(axis = 1)
@@ -152,19 +150,35 @@ def p_times_1sample(array, channels = 'all'):
         print('Valid channel arguments: type list')
         exit
 
-    #test normality
+    #test normality; do 1-sample t-test if normal, wilcoxon otherwise
     ks = gaussian_test(array_ch_mean)
 
     p_values = []
-   # ks = 1
     for timepoint in range(0, array.shape[2]):
         if ks > 0.05:
             res = ttest_1samp(array_ch_mean[:, timepoint], popmean = 0)       
         elif ks < 0.05:
             res = wilcoxon_1samp(array_ch_mean[:, timepoint])
         p_values.append(res.pvalue)
+        n_tests = len(p_values)
     
+    if tmin is not None and tmax is not None:
+        #FDR correction for multiple comparisons
+        start_idx = time_index([tmin])[0]
+        end_idx = time_index([tmax])[0]
+        end_padding = n_tests-end_idx
+        p_values = fdrcorrection(p_values[start_idx:end_idx])[1]
+
+        #pad the array so that it's the right size but everything outside range of interest is 1 so not significant
+        p_values = np.pad(p_values,(start_idx, end_padding), constant_values=1)
+
+    else: 
+        p_values = fdrcorrection(p_values)[1] #does fdr correction over all timepoints
+        #recommend selecting the time slice of interest, otherwise it reduces the power
+        
+
     return p_values
+
 
 """
 This function is used to process the data so that it's ready for the 1 sample t-test. Takes the 
@@ -176,26 +190,34 @@ def find_diff_sa(evoked_list1, evoked_list2):
     diff_evoked_sa = np.stack(diff_evoked_list)
     return diff_evoked_sa
 
-""" 
-calculate p values of differences between the pre- and post-training ERPs
-currently using ind samples t-test but should reconsider this...
-
-arrays_to_compare: a list of 2 arrays to compare. Like [test_pre, test_post]
-returns: a list of p values the , one p value for each time point
-"""
 
 
-def p_chs(arrays_to_compare, time_idx):
+
+def p_chs(arrays_to_compare, time_idx, ttest):
+    """ 
+    calculate p values of differences at each channel between the pre- and post-training ERPs
+    arrays_to_compare: a list of 2 arrays to compare, e.g. [test_pre, test_post]
+    time_idx: timepoint at which you want to compare. Find it from the timepoint in seconds using time_index()
+
+    ----
+    returns: a list of p values one p value for each channel
+    """
     p_values = []
  
     for channel in range(0, 64):
         array1 = arrays_to_compare[0][:, channel, time_idx]
         array2 = arrays_to_compare[1][:, channel, time_idx]
-        res = ttest_ind(array1, array2)
-        p_values.append(res.pvalue)
-        
-    return p_values
 
+        if ttest == 'ind':
+            res = ttest_ind(array1, array2)
+        elif ttest == 'within':
+            res = ttest_rel(array1, array2)
+        p_values.append(res.pvalue)
+    
+    #FDR correction 
+    p_values = fdrcorrection(p_values)[1]
+
+    return p_values
 """ 
 Process the p-values so that when they're plotted as a topomap, the small values (i.e. the most significant) are plotted as red
 Also anything > 0.05 becomes 0 
