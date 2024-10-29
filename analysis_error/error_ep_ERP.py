@@ -21,12 +21,17 @@ from plot_utils import *
 
 #CHANGE THIS AS THE EXPERIMENT PROGRESSES
 #----------------------------------------
-subjects_to_process = ['15']
-periods = ['pre']
-keystroke_trigs = 'MIDI'
+subjects_to_process = ['13','14','15','16','17', '18', '19', '20']
+#['01', '04', '05','06','07','08','09','10','11','12']
+                       #13','14','15','16','17', '20']
+periods = ['pre', 'post']
+keystroke_trigs = 'audio'
 
-overwrite = True #overwrite existing files
+overwrite = False #overwrite existing files
 plot = False
+
+find_mapchanges = True
+find_modekeystrokes = True
 
 #-----------------------------------------
 
@@ -38,7 +43,7 @@ ch_names_72 = ch_names_all[0:72]
 downfreq = 128
 
 #times for cropping ERPs
-erp_begin = -0.2
+erp_begin = -0.5
 erp_end = 0.5
 
 
@@ -46,10 +51,12 @@ erp_end = 0.5
 #                        INITIALIZE DIRECTORIES
 #======================================================================================
 pp_dir = "/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/data_preprocessed" #where the preprocessed files are
-evokeds_folder = '/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/analysis_error/error_ERP_data'
-epochs_folder = '/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/analysis_error/error_epochs_data'
+evokeds_folder = '/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/analysis_error/error_ERP_data_n05to05'
+epochs_folder = '/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/analysis_error/error_epochs_data_n05to05'
 
-
+for folder in [evokeds_folder, epochs_folder]:
+    if not os.path.exists(folder):
+        os.makedirs(folder)
 #======================================================================================
 #                        CALCULATE EVOKEDS
 #======================================================================================
@@ -119,52 +126,57 @@ for folder in sorted(os.listdir(pp_dir)):
         t_norm = clean_triggers(events_arr[events_arr[:, 2]==5])
         t_modeswitch = np.concatenate([t_inv, t_shinv, t_norm])
         t_modeswitch = events_inorder(t_modeswitch)
-        
+
+
         #--------------------------------------------
         #               SET UP EVOKEDS OBJECTS
         #--------------------------------------------
+
+        #all epochs
         epochs = mne.Epochs(reconst_raw, t_keystrokes, tmin=erp_begin, tmax=erp_end, preload=True)
+        epochs = epochs.copy().interpolate_bads(reset_bads = True)
         evoked = epochs.average()
 
-        #keystrokes in the inverted mapping
-        inv_sections = find_sections(reconst_raw, t_inv, t_modeswitch)
-        inv_keystrokes = find_keystrokes(reconst_raw, t_keystrokes, inv_sections)
-        epochs_inv = mne.Epochs(reconst_raw, inv_keystrokes, tmin=erp_begin, tmax=erp_end, preload=True)
-        inv_evoked = epochs_inv.average()
+
+        #epochs separated by mode
+        if find_modekeystrokes:
+            epochs_inv, evoked_inv = epochs_bymode(reconst_raw, t_keystrokes, t_inv, t_modeswitch, erp_begin, erp_end)
+            epochs_shinv, evoked_shinv = epochs_bymode(reconst_raw, t_keystrokes, t_shinv, t_modeswitch, erp_begin, erp_end)
+            epochs_norm, evoked_norm = epochs_bymode(reconst_raw, t_keystrokes, t_norm, t_modeswitch, erp_begin, erp_end)
+
+                    #ERPs
+            mne.write_evokeds(f'{evokeds_folder}/error_ERP_all_{period}_{subject_ID}.fif', evoked, overwrite = overwrite)
+            mne.write_evokeds(f'{evokeds_folder}/error_ERP_inv_{period}_{subject_ID}.fif', evoked_inv, overwrite = overwrite)
+            mne.write_evokeds(f'{evokeds_folder}/error_ERP_shinv_{period}_{subject_ID}.fif', evoked_shinv, overwrite = overwrite)
+            mne.write_evokeds(f'{evokeds_folder}/error_ERP_norm_{period}_{subject_ID}.fif', evoked_norm, overwrite = overwrite)
+
+            #epochs
+            epochs.save(f'{epochs_folder}/error_epochs_all_{period}_{subject_ID}.fif', overwrite = overwrite)
+            epochs_inv.save(f'{epochs_folder}/error_epochs_inv_{period}_{subject_ID}.fif', overwrite = overwrite)
+            epochs_shinv.save(f'{epochs_folder}/error_epochs_shinv_{period}_{subject_ID}.fif', overwrite = overwrite)
+            epochs_norm.save(f'{epochs_folder}/error_epochs_norm_{period}_{subject_ID}.fif', overwrite = overwrite)
+
+
+        if find_mapchanges:
+            #keystrokes for keystrokes after map change and other keystrokes
+            first_keystrokes = mapchange_keystrokes(t_modeswitch = t_modeswitch, t_keystroke=t_keystrokes)
+            other_keystrokes = withinmap_keystrokes(t_keystrokes, first_keystrokes)
+   
+            #epochs separated by whether it is immediately after a map change or not
+            epochs_firsts, evoked_firsts  = construct_ep_ev(reconst_raw, first_keystrokes, erp_begin, erp_end)
+            epochs_others, evoked_others = construct_ep_ev(reconst_raw, other_keystrokes, erp_begin, erp_end)
+
+            mne.write_evokeds(f'{evokeds_folder}/error_ERP_firsts_{period}_{subject_ID}.fif', evoked_firsts, overwrite = overwrite)
+            mne.write_evokeds(f'{evokeds_folder}/error_ERP_others_{period}_{subject_ID}.fif', evoked_others, overwrite = overwrite)
+            epochs_firsts.save(f'{epochs_folder}/error_epochs_firsts_{period}_{subject_ID}.fif', overwrite = overwrite)
+            epochs_others.save(f'{epochs_folder}/error_epochs_others_{period}_{subject_ID}.fif', overwrite = overwrite)
+
+
         if plot:
-            fig = inv_evoked.plot(titles = f'Keystrokes - inverted mapping {period} sub{subject_ID}')
+            fig = evoked_inv.plot(titles = f'Keystrokes - inverted mapping {period} sub{subject_ID}')
+            fig = evoked_shinv.plot(titles = f'Shifted keystrokes {period} sub{subject_ID}')
+            fig = evoked_norm.plot(titles = f'Keystrokes - normal mapping {period} sub{subject_ID}')
 
-        #keystrokes in shinv mapping
-        shinv_sections = find_sections(reconst_raw, t_shinv, t_modeswitch)
-        shinv_keystrokes = find_keystrokes(reconst_raw, t_keystrokes, shinv_sections)
-        epochs_shinv = mne.Epochs(reconst_raw, shinv_keystrokes, tmin=erp_begin, tmax=erp_end, preload=True)
-        shinv_evoked = epochs_shinv.average()
-        if plot:
-            fig = shinv_evoked.plot(titles = f'Shifted keystrokes {period} sub{subject_ID}')
-
-        #keystrokes in normal mapping
-        norm_sections = find_sections(reconst_raw, t_norm, t_modeswitch)
-        norm_keystrokes = find_keystrokes(reconst_raw, t_keystrokes, norm_sections)
-        epochs_norm = mne.Epochs(reconst_raw, norm_keystrokes, tmin=erp_begin, tmax=erp_end, preload=True)
-        norm_evoked = epochs_norm.average()
-        if plot:
-            fig = norm_evoked.plot(titles = f'Keystrokes - normal mapping {period} sub{subject_ID}')
-
-
-        #--------------------------------------------
-        #         SAVE DATA
-        #--------------------------------------------
-        #ERPs
-        mne.write_evokeds(f'{evokeds_folder}/error_ERP_all_{period}_{subject_ID}.fif', evoked, overwrite = overwrite)
-        mne.write_evokeds(f'{evokeds_folder}/error_ERP_inv_{period}_{subject_ID}.fif', inv_evoked, overwrite = overwrite)
-        mne.write_evokeds(f'{evokeds_folder}/error_ERP_shinv_{period}_{subject_ID}.fif', shinv_evoked, overwrite = overwrite)
-        mne.write_evokeds(f'{evokeds_folder}/error_ERP_norm_{period}_{subject_ID}.fif', norm_evoked, overwrite = overwrite)
-
-        #epochs
-        epochs.save(f'{epochs_folder}/error_epochs_all_{period}_{subject_ID}.fif', overwrite = overwrite)
-        epochs_inv.save(f'{epochs_folder}/error_epochs_inv_{period}_{subject_ID}.fif', overwrite = overwrite)
-        epochs_shinv.save(f'{epochs_folder}/error_epochs_shinv_{period}_{subject_ID}.fif', overwrite = overwrite)
-        epochs_norm.save(f'{epochs_folder}/error_epochs_norm_{period}_{subject_ID}.fif', overwrite = overwrite)
 
 
         

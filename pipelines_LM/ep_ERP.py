@@ -34,10 +34,15 @@ python ep_ERP.py
 
 #CHANGE THIS AS THE EXPERIMENT PROGRESSES
 #----------------------------------------
-subjects_to_process = ['20', '21']
+subjects_to_process = ['02', '03', '13', '18', '19', '21']
+#subjects_to_process = ['14','15','16','17', '20']
+
+#subjects_to_process = ['01']
 periods = ['pre', 'post']
-task = 'motor'
-keystroke_trigs = 'MIDI'
+task = 'listen'
+keystroke_trigs = 'audio'
+erp_start = -0.5
+erp_end = 0.5
 
 overwrite = False
 
@@ -55,8 +60,14 @@ plot = False
 #                        INITIALIZE DIRECTORIES
 #======================================================================================
 pp_dir = "/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/data_preprocessed" #where the preprocessed files are
-evokeds_folder = f'/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/analysis_{task}/{task}_ERP_data'
-epochs_folder = f'/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/analysis_{task}/{task}_epochs_data'
+evokeds_folder = f'/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/analysis_{task}/{task}_ERP_data_n05to05'
+epochs_folder = f'/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/analysis_{task}/{task}_epochs_data_n05to05'
+
+#to check and create the directory if it doesn't exist
+for folder in [evokeds_folder, epochs_folder]:
+    if not os.path.exists(folder):
+        os.makedirs(folder)
+        
 
 
 #======================================================================================
@@ -127,7 +138,7 @@ for folder in sorted(os.listdir(pp_dir)):
         #--------------------------------------------
         #               SET UP EVOKEDS OBJECTS
         #--------------------------------------------
-        epochs = mne.Epochs(reconst_raw, t_keystrokes, tmin=-0.2, tmax=0.5, preload=True)
+        epochs = mne.Epochs(reconst_raw, t_keystrokes, tmin=erp_start, tmax=erp_end, preload=True)
         evoked = epochs.average()
 
         #plot evoked

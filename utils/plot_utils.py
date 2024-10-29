@@ -10,7 +10,7 @@ section_list: the list of start and end times of a certain type of section. Foun
 
 example: plot_sections(inv_sections)
 """
-def plot_sections(section_list, downfreq = 32):
+def plot_sections(section_list, downfreq = 128):
     plt.figure(figsize=(20,10))
 
     y1 = 0
@@ -31,4 +31,4 @@ def plot_sections(section_list, downfreq = 32):
     
     plt.xlabel('Time (s)')
     plt.ylabel('Playing mode')
-    plt.show()
+    #plt.show()

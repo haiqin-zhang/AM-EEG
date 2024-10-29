@@ -169,16 +169,17 @@ def sort_events_MIDI(events, clean = True):
 #======================================================================================
 #                       FINDING/CLASSIFYING KEYSTROKES
 #======================================================================================
-""" 
-Finds timeframes of each playing mode in the error trial (inv, shinv, or norm)
-raw: eeg data
-section_triggers: the mode of interest
-t_modeswitch: events, defined beforehand. All the mode-related triggers
 
-Example: 
-find_sections(raw, t_shinv, t_modeswitch)
-"""
 def find_sections(raw, section_trigggers, mode_triggers, downfreq = 128):
+    """ 
+    Finds timeframes of each playing mode in the error trial (inv, shinv, or norm)
+    raw: eeg data
+    section_triggers: the mode of interest
+    t_modeswitch: events, defined beforehand. All the mode-related triggers
+
+    Example: 
+    find_sections(raw, t_shinv, t_modeswitch)
+    """
     section_times = []
     for segment_start in section_trigggers[:,0]:
 
@@ -196,15 +197,16 @@ def find_sections(raw, section_trigggers, mode_triggers, downfreq = 128):
     return np.array(section_times)
 
 
-""" 
-Finds the keystrokes that fall into a certain condition.
-raw: EEG data
-t_keystrokes: all keystroke events
-timeframes: the times of the condition you want, found with find_sections
 
-Example: find_keystrokes(raw, t_keystrokes, norm_times)
-"""
 def find_keystrokes(raw, t_keystrokes, timeframes):
+    """ 
+    Finds the keystrokes that fall into a certain condition.
+    raw: EEG data
+    t_keystrokes: all keystroke events
+    timeframes: the times of the condition you want, found with find_sections
+
+    Example: find_keystrokes(raw, t_keystrokes, norm_times)
+    """
     keystrokes = t_keystrokes[:,0]
     filt_keystrokes = []
     for segment in timeframes:
@@ -219,14 +221,93 @@ def find_keystrokes(raw, t_keystrokes, timeframes):
     return filt_keystrokes_events
 
 
+def mapchange_keystrokes(t_modeswitch, t_keystroke):
+    """ 
+    Finds all the keystroke triggers that are the first keystrokes after a map change
+
+    t_modeswitch: subset of events_array with all mode switch triggers
+    t_keystroke: subset of events_array with all keystrokes
+    ---
+    Returns: first keystrokes, a np array in the same format as events_array(3 columns, first column is time)
+    """
+    
+    first_keystrokes = []
+    # Extract time of mode switches and keystrokes
+    mode_times = t_modeswitch[:, 0]
+    # Initialize the index for mode switches
+    mode_idx = 0
+    num_modes = len(mode_times)
+
+    already_found = False
+
+    for keystroke in t_keystroke:
+        # Get the time of the current keystroke
+        k_time = keystroke[0]
+
+        if mode_idx < num_modes-1:
+            if k_time > mode_times[mode_idx]:
+                if not already_found:
+                    first_keystrokes.append(keystroke)
+                    mode_idx +=1
+
+    first_keystrokes = np.array(first_keystrokes)
+
+    return first_keystrokes
 
 
 
+def withinmap_keystrokes(t_keystrokes, first_keystrokes):
+    """ 
+    Finds the keystrokes EXCEPT the ones immediately after a map change 
+        (by removing the keystrokes that appear in first_keystrokes from the array of all keystrokes, t_keystrokes)
 
+    t_keystroke: subset of events_array with all keystrokes
+    first_keystrokes: subset of t_keystroke with the keystrokes immediately after map change 
+    ---
+    Returns: other_keystrokes, a np array in the same format as events_array(3 columns, first column is time)
+    
+    """
+    t_keystrokes_set = set(map(tuple, t_keystrokes))
+    first_keystrokes_set = set(map(tuple, first_keystrokes))
 
+    # Find the difference between the sets
+    others_set = t_keystrokes_set - first_keystrokes_set
 
+    # Convert back to a NumPy array
+    other_keystrokes = np.array(list(others_set))
+    other_keystrokes = other_keystrokes[other_keystrokes[:,0].argsort()]
 
+    return other_keystrokes
 
+def construct_ep_ev(reconst_raw, mode_keystrokes, erp_begin, erp_end):
+    """ 
+    Constructs epochs and evokeds given the types of keystrokes you want to use
+    Interpolates bad channels
+    ---
+    returns: epochs, evokeds 
+    """
+    epochs_mode = mne.Epochs(reconst_raw, mode_keystrokes, tmin=erp_begin, tmax=erp_end, preload=True)
+    epochs_mode = epochs_mode.copy().interpolate_bads(reset_bads = True)
+    evoked_mode = epochs_mode.average()
+
+    return epochs_mode, evoked_mode
+
+def epochs_bymode(reconst_raw, t_keystrokes, t_mode, t_modeswitch, erp_begin, erp_end):
+    """ 
+    Use for finding keystrokes that belong to a particular mapping
+    combines the steps of finding relevant sections, keystrokes, and creating epochs and evokeds
+    
+    ---
+    returns: epochs, evokeds
+    """
+    mode_sections = find_sections(reconst_raw, t_mode, t_modeswitch)
+    mode_keystrokes = find_keystrokes(reconst_raw, t_keystrokes, mode_sections)
+    epochs_mode, evoked_mode = construct_ep_ev(reconst_raw, mode_keystrokes, erp_begin, erp_end)
+
+    return epochs_mode, evoked_mode
+
+#-------------------------------------------------------------------
+#-------------------------------------------------------------------
 #-------------------------------------------------------------------
 # STUFF BELOW NOT IN USE
 #-------------------------------------------------------------------
@@ -285,3 +366,5 @@ def concat_nonuniform(raw, events1, events2, fs):
         segments.append(segment)
         
     return mne.io.concatenate_raws(segments)
+
+

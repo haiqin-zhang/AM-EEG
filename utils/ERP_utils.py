@@ -8,11 +8,27 @@ import pandas as pd
 import glob
 import os
 from update_sub_lists import*
+from pp_utils import *
 
 def load_erp_times():
+    """ 
+    avoid because it only works for erps from -0.2 to 0.5
+    """
     with open('../utils/erp_times.pkl', 'rb') as file:
         times = pickle.load(file)
         return times
+    
+def create_erp_times(tmin, tmax, fs):
+    """ 
+    creates a time vector for ERPs given start and end time. result should match the .times attribute in epochs
+    tmin, tmax: times in seconds
+    fs: sampling frequency
+    ---
+    returns 1d vector with the time
+    """
+    step = 1 / fs
+    times = np.arange(tmin, tmax+step, step)
+    return times
 
 def load_channels():
     #get channel names
@@ -24,6 +40,11 @@ def load_channels():
     
 
     return ch_names_64, ch_names_72
+
+def load_ep_info():
+    with open('../utils/epochs_info.pkl', 'rb')as file:
+        ep_info = pickle.load(file)
+    return ep_info
 
 
 
@@ -52,8 +73,7 @@ def time_index(timepoints):
     Returns a list of indices  
     """
     assert isinstance(timepoints, list)
-    with open('erp_times.pkl', 'rb') as file:
-        erp_times = pickle.load(file)
+    erp_times = load_erp_times()
     idx_list = []
     for time in timepoints: 
         time_idx = min(range(len(erp_times)), key=lambda i: abs(erp_times[i] - time))
@@ -334,7 +354,7 @@ def load_evoked_epochs(subjects_to_process, task):
     
     return (concat_epochs_pre, concat_evoked_pre, concat_epochs_post, concat_evoked_post)
 
-def load_epochs_bysubject(subjects_to_process, task):
+def load_epochs_bysubject(subjects_to_process, task, epochs_dir):
 
 
     """
@@ -347,7 +367,7 @@ def load_epochs_bysubject(subjects_to_process, task):
         each row of ['epochs'] is an array of shape n_channels x n_timepoints, and is the average of all epochs from one subject
     """
     
-    epochs_dir = f'/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/analysis_{task}/{task}_epochs_data'
+    #epochs_dir = f'/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/analysis_{task}/{task}_epochs_data'
     epochs_df = pd.DataFrame(columns = ['subject', 'period', 'musician', 'epochs'])
     
     good_listen_subjects, good_motor_subjects, musicians, nonmusicians = load_subject_lists()
@@ -384,7 +404,7 @@ def load_epochs_bysubject(subjects_to_process, task):
     return (epochs_df)
 
 
-def load_error_epochs_bysubject(subjects_to_process, epoch_type):
+def load_error_epochs_bysubject(subjects_to_process, epoch_type, epochs_dir):
     """ 
     Loads the epochs for error trials
     subjects_to_process: list of subjects where each element is a string. e.g. ['01', '02']
@@ -396,7 +416,7 @@ def load_error_epochs_bysubject(subjects_to_process, epoch_type):
     
     """
 
-    epochs_dir = f'/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/analysis_error/error_epochs_data'
+    #epochs_dir = f'/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/analysis_error/error_epochs_data'
     epochs_df = pd.DataFrame(columns = ['subject', 'period', 'musician', 'epochtype', 'epochs'])
     good_listen_subjects, good_motor_subjects, musicians, nonmusicians = load_subject_lists()
 
@@ -427,3 +447,6 @@ def load_error_epochs_bysubject(subjects_to_process, epoch_type):
 
     epochs_df.reset_index(drop=True, inplace=True)
     return (epochs_df)
+
+
+
