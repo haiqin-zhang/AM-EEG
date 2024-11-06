@@ -1,0 +1,2 @@
+notch_applied,notch,bpf_applied,bandpass,HPF,LPF,reref_applied,reref_type,reref_channels,down_applied,downfreq
+True,50,True,"{'order': 3, 'ftype': 'butter'}",1,15,True,Mastoids,"['M1', 'M2']",True,128

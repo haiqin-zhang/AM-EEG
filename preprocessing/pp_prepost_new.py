@@ -21,8 +21,8 @@ from pp_utils import *
 #======================================================================================
 #                        SPECIFY SUBJECTS AND WHAT PART OF THE EXPERIMENT
 #======================================================================================
-subjects_to_process = ['20', '21']
-periods = ['pre', 'post']
+subjects_to_process = ['15']
+periods = ['post']
 
 
 bad_chs = [] #put the bad channel names here; process subjects with bad channels separately
@@ -31,7 +31,7 @@ bad_chs = [] #put the bad channel names here; process subjects with bad channels
 #                        INITIALIZE DIRECTORIES
 #======================================================================================
 root_dir = "/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/data_raw" #where the raw bdf files are
-output_base = '/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/data_preprocessed' #where all the preprocessed .mat files and other info go
+output_base = '/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/data_preprocessed_30Hz' #where all the preprocessed .mat files and other info go
 
 plot = False
 check_events = True
@@ -51,7 +51,7 @@ freq_notch = 50
 # Bandpass filtering
 bpf_applied = True
 freq_low   = 1
-freq_high  = 15
+freq_high  = 30
 bandpass = str(freq_low) + '-' + str(freq_high)
 ftype = 'butter'
 order = 3

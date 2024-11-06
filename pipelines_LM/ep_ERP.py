@@ -34,13 +34,13 @@ python ep_ERP.py
 
 #CHANGE THIS AS THE EXPERIMENT PROGRESSES
 #----------------------------------------
-subjects_to_process = ['02', '03', '13', '18', '19', '21']
+subjects_to_process = ['14','15','16','20']
 #subjects_to_process = ['14','15','16','17', '20']
 
 #subjects_to_process = ['01']
 periods = ['pre', 'post']
-task = 'listen'
-keystroke_trigs = 'audio'
+task = 'motor'
+keystroke_trigs = 'MIDI'
 erp_start = -0.5
 erp_end = 0.5
 
@@ -59,9 +59,9 @@ plot = False
 #======================================================================================
 #                        INITIALIZE DIRECTORIES
 #======================================================================================
-pp_dir = "/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/data_preprocessed" #where the preprocessed files are
-evokeds_folder = f'/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/analysis_{task}/{task}_ERP_data_n05to05'
-epochs_folder = f'/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/analysis_{task}/{task}_epochs_data_n05to05'
+pp_dir = "/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/data_preprocessed_30Hz" #where the preprocessed files are
+evokeds_folder = f'/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/analysis_{task}/{task}_ERP_data_n05to05_30Hz'
+epochs_folder = f'/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/analysis_{task}/{task}_epochs_data_n05to05_30Hz'
 
 #to check and create the directory if it doesn't exist
 for folder in [evokeds_folder, epochs_folder]:

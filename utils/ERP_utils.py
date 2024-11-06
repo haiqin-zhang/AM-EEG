@@ -68,12 +68,32 @@ def ch_index(ch_list):
 def time_index(timepoints):
 
     """
-    Finds the index in the data (which should be an array) given a list of timepoints expressed in seconds
+    Finds the index in the time vector from -0.2 to 0.5
+    timepoints: a list of timepoints expressed in seconds
+    erp_times: time vector to find the index for(which should be an array)
+    
+    ---
+    Returns a list of indices  
+    """
+    erp_times = load_erp_times()
+    assert isinstance(timepoints, list)
+    idx_list = []
+    for time in timepoints: 
+        time_idx = min(range(len(erp_times)), key=lambda i: abs(erp_times[i] - time))
+        idx_list.append(time_idx)
+    return idx_list
+
+def time_index_custom(timepoints, erp_times):
+
+    """
+    Finds the index in the time vector 
+    timepoints: a list of timepoints expressed in seconds
+    erp_times: time vector to find the index for(which should be an array)
+    
     ---
     Returns a list of indices  
     """
     assert isinstance(timepoints, list)
-    erp_times = load_erp_times()
     idx_list = []
     for time in timepoints: 
         time_idx = min(range(len(erp_times)), key=lambda i: abs(erp_times[i] - time))
@@ -218,19 +238,20 @@ def p_chs(arrays_to_compare, time_idx, ttest):
     calculate p values of differences at each channel between the pre- and post-training ERPs
     arrays_to_compare: a list of 2 arrays to compare, e.g. [test_pre, test_post]
     time_idx: timepoint at which you want to compare. Find it from the timepoint in seconds using time_index()
+    ttest: 'ind' or 'rel'
 
     ----
     returns: a list of p values one p value for each channel
     """
     p_values = []
  
-    for channel in range(0, 64):
+    for channel in range(0, 64): #assumes 64 channel eeg
         array1 = arrays_to_compare[0][:, channel, time_idx]
         array2 = arrays_to_compare[1][:, channel, time_idx]
 
         if ttest == 'ind':
             res = ttest_ind(array1, array2)
-        elif ttest == 'within':
+        elif ttest == 'rel':
             res = ttest_rel(array1, array2)
         p_values.append(res.pvalue)
     
@@ -354,7 +375,7 @@ def load_evoked_epochs(subjects_to_process, task):
     
     return (concat_epochs_pre, concat_evoked_pre, concat_epochs_post, concat_evoked_post)
 
-def load_epochs_bysubject(subjects_to_process, task, epochs_dir):
+def load_epochs_bysubject(subjects_to_process, task, epochs_dir, sub_ave = True):
 
 
     """
@@ -388,8 +409,12 @@ def load_epochs_bysubject(subjects_to_process, task, epochs_dir):
         for period in ['pre', 'post']:
             file_epochs_pre = glob.glob(os.path.join(epochs_dir, f'{task}_epochs_{period}_{subject}.fif'))[0]
             epochs_sub = mne.read_epochs(file_epochs_pre)
-            epochs_sub = np.mean(epochs_sub.get_data()[:, :64, :], axis = 0) #get only the eeg channels and average all trials per subject
-            #epochs_sub = epochs_sub[np.newaxis, :, :]
+
+            if sub_ave:
+                epochs_sub = np.mean(epochs_sub.get_data()[:, :64, :], axis = 0) #get only the eeg channels and average all trials per subject
+            else: 
+                epochs_sub = epochs_sub.get_data()[:,:64, :]
+            
 
             df_sub = pd.DataFrame({
                 'subject': subject,
@@ -404,7 +429,7 @@ def load_epochs_bysubject(subjects_to_process, task, epochs_dir):
     return (epochs_df)
 
 
-def load_error_epochs_bysubject(subjects_to_process, epoch_type, epochs_dir):
+def load_error_epochs_bysubject(subjects_to_process, epoch_type, epochs_dir, sub_ave = True):
     """ 
     Loads the epochs for error trials
     subjects_to_process: list of subjects where each element is a string. e.g. ['01', '02']
@@ -416,7 +441,6 @@ def load_error_epochs_bysubject(subjects_to_process, epoch_type, epochs_dir):
     
     """
 
-    #epochs_dir = f'/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/analysis_error/error_epochs_data'
     epochs_df = pd.DataFrame(columns = ['subject', 'period', 'musician', 'epochtype', 'epochs'])
     good_listen_subjects, good_motor_subjects, musicians, nonmusicians = load_subject_lists()
 
@@ -432,8 +456,12 @@ def load_error_epochs_bysubject(subjects_to_process, epoch_type, epochs_dir):
         for period in ['pre', 'post']:
             file_epochs_pre = glob.glob(os.path.join(epochs_dir, f'error_epochs_{epoch_type}_{period}_{subject}.fif'))[0]
             epochs_sub = mne.read_epochs(file_epochs_pre)
-            epochs_sub = np.mean(epochs_sub.get_data()[:, :64, :], axis = 0) #get only the eeg channels and average all trials per subject
+
+            if sub_ave:
+                epochs_sub = np.mean(epochs_sub.get_data()[:, :64, :], axis = 0) #get only the eeg channels and average all trials per subject
             #epochs_sub = epochs_sub[np.newaxis, :, :]
+            else: 
+                epochs_sub = epochs_sub.get_data()[:,:64, :]
 
             df_sub = pd.DataFrame({
                 'subject': subject,
@@ -447,6 +475,3 @@ def load_error_epochs_bysubject(subjects_to_process, epoch_type, epochs_dir):
 
     epochs_df.reset_index(drop=True, inplace=True)
     return (epochs_df)
-
-
-
