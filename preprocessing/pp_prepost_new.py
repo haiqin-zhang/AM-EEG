@@ -21,21 +21,13 @@ from pp_utils import *
 #======================================================================================
 #                        SPECIFY SUBJECTS AND WHAT PART OF THE EXPERIMENT
 #======================================================================================
-subjects_to_process = ['15']
-periods = ['post']
+subjects_to_process = ['19', '21']
+periods = ['pre', 'post']
 
 
 bad_chs = [] #put the bad channel names here; process subjects with bad channels separately
 
-#======================================================================================
-#                        INITIALIZE DIRECTORIES
-#======================================================================================
-root_dir = "/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/data_raw" #where the raw bdf files are
-output_base = '/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/data_preprocessed_30Hz' #where all the preprocessed .mat files and other info go
 
-plot = False
-check_events = True
-FS_ORIG = 2048  # Hz
 
 
 #======================================================================================
@@ -43,6 +35,11 @@ FS_ORIG = 2048  # Hz
 #======================================================================================
 # Printing general info
 print_info = False
+
+#other parameters
+plot = False
+check_events = True
+FS_ORIG = 2048  # Hz
 
 # Notch filtering
 notch_applied = True
@@ -70,6 +67,13 @@ downfreq = 128
 if not down_applied:
     downfreq = FS_ORIG
 downfreq_factor =int(FS_ORIG/downfreq)
+
+#======================================================================================
+#                        INITIALIZE DIRECTORIES
+#======================================================================================
+root_dir = "/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/data_raw" #where the raw bdf files are
+output_base = f'/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/data_preprocessed_{freq_high}Hz' #where all the preprocessed .mat files and other info go
+
 
 
 #====================================================================================== 

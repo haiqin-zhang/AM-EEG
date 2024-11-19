@@ -34,7 +34,7 @@ python ep_ERP.py
 
 #CHANGE THIS AS THE EXPERIMENT PROGRESSES
 #----------------------------------------
-subjects_to_process = ['12']
+subjects_to_process = [ '17', '18','19','20', '21']
 
 task = 'training'
 keystroke_trigs = 'audio'
@@ -51,7 +51,7 @@ with open('../utils/ch_names.pkl', 'rb') as file:
 
 ch_names_72 = ch_names_all[0:72]
 downfreq = 128
-plot = True
+plot = False
 
 
 
