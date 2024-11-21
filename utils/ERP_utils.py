@@ -10,6 +10,30 @@ import os
 from update_sub_lists import*
 from pp_utils import *
 
+
+def find_existing_subjects(data_dir):
+    """ 
+    automatically find subjects existing in the evoked or epochs folder
+    NEED TO BETTER DEFINE HOW TO HANDLE PERIODS, for now it's not relevant
+    (subjects are expected to have data in both pre and post periods)
+    ---
+    returns:
+    subjects_to_process: list of subjects
+    """
+    
+    subjects_to_process = []
+    for file_name in os.listdir(data_dir):
+        # Check if the file matches the format you're interested in
+
+            # Extract the subject ID (last two characters before file extension name)
+            subject_id = file_name.split("_")[-1].split(".")[0]
+            subjects_to_process.append(subject_id)
+
+    # Sort and filter the list of subjects
+    subjects_to_process = sorted(set(subjects_to_process))
+    subjects_to_process = [x for x in subjects_to_process if x.isdigit()] 
+    return subjects_to_process
+
 def load_erp_times():
     """ 
     avoid because it only works for erps from -0.2 to 0.5
@@ -86,6 +110,24 @@ def time_index(timepoints):
 def time_index_custom(timepoints, erp_times):
 
     """
+    Finds the index in the time vector 
+    timepoints: a list of timepoints expressed in seconds
+    erp_times: time vector to find the index for(which should be an array)
+    
+    ---
+    Returns a list of indices  
+    """
+    assert isinstance(timepoints, list)
+    idx_list = []
+    for time in timepoints: 
+        time_idx = min(range(len(erp_times)), key=lambda i: abs(erp_times[i] - time))
+        idx_list.append(time_idx)
+    return idx_list
+
+def index_custom(timepoints, erp_times):
+### THIS IS IDENTICAL TO TIME_INDEX_CUSTOM... with a name that is more clear
+    """
+
     Finds the index in the time vector 
     timepoints: a list of timepoints expressed in seconds
     erp_times: time vector to find the index for(which should be an array)
