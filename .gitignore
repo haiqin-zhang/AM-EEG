@@ -6,7 +6,7 @@
 *.fif
 *.npy
 *.mp4
-
+*.pkl
 
 #folders
 test_data/
