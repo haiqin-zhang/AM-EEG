@@ -4,6 +4,7 @@ from statsmodels.stats.multitest import fdrcorrection
 import pickle
 import mne
 import pandas as pd
+import matplotlib.pyplot as plt
 
 import glob
 import os
@@ -178,19 +179,23 @@ def p_times(arrays_to_compare, channels = 'all'):
     return p_values
 
 
-def gaussian_test(array):
+#GAUSSIAN TEST FUNCTION HERE IS OLD. SEE STATS UTILS FOR UPDATED VERSION
+#def gaussian_test(array, axis = 1):
     """
     KS test to determine whether the data is normally distributed. 
     Takes an array of shape [n_participants, n_timepoints] and determines whether distribution 
     is normal at each timepoint.
     Returns significance level of KS test averaged over all timepoints
     """
+"""    n_points = array.shape[axis]
     p_values = []
-    for timepoint in range(0, array.shape[1]):
+    
+    for timepoint in range(0, n_points):
         res = kstest(array[:,timepoint], 'norm')
         p_values.append(res.pvalue)
 
     p_values = np.array(p_values)
+    print(f'testing gaussianity over {n_points} points')
     significance = p_values.mean()
 
     if significance > 0.05: 
@@ -198,8 +203,9 @@ def gaussian_test(array):
     elif significance < 0.04:
         print("Distribution is not normal. p = ", significance)
 
-    return significance
+    return significance"""
 
+#SEE STATS UTILS
 """
 Adaptation of scipy implmentation but comparing one sample with an expected mean of 0
 Only one input array needed
@@ -517,3 +523,19 @@ def load_error_epochs_bysubject(subjects_to_process, epoch_type, epochs_dir, sub
 
     epochs_df.reset_index(drop=True, inplace=True)
     return (epochs_df)
+
+
+def plot_topo_custom(topo_data, pos, colorbar=False, cbar_label = None, title = None, **kwargs):
+    """  
+    uses mne plot topo function to plot a nice topomap with my favourite parameters 
+    NOT COMPLETELY POLISHED BUT USABLE
+    """
+    fig, ax = plt.subplots()
+    im, _ = mne.viz.plot_topomap(topo_data, pos, axes=ax, show=False, **kwargs)
+    if colorbar:
+        cbar = fig.colorbar(im, ax=ax, orientation='vertical', shrink=0.7)
+        cbar.set_label(label = cbar_label, rotation=270, labelpad=15) 
+
+    if title != None:
+        ax.set_title(title)
+    plt.show()

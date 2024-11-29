@@ -10,6 +10,10 @@ nonmusicians = ['01', '03', '04', '05', '08', '09', '10', '11', '16', '19', '20'
 musicians = ['02', '06', '07', '12', '13', '14', '15', '17', '18', '21']
 
 These lists are saved as .mat files under utils and can be loaded later
+
+## Wavelet processing
+Wavelet transform files are saved as MAGNITUDEs of wavelet transforms. These should be squared to obtain power. 
+ 
 ---
 ## Participant-specific preprocessing notes
 

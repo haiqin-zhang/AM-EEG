@@ -113,12 +113,15 @@ def sum_wavelet_power(wavelet_data, freqs_to_sum, freqs_array):
     Sums the power over time. 
     If a range of freqs is included, takes the total over all the freqs
 
-    wavelet_transform: MEAN absolute values of wavelet transform in one channel. size spect_freqs x spect_height
+    wavelet_data: MEAN absolute values of wavelet transform in one channel. size spect_freqs x spect_height
     freqs_to_sum: Range of freqs to sum over from low to high bound.
     freqs_array: the array of frequencies associated with the wavelet transform
     ----
     returns sum: array of size n_channels
     """
+
+    ## add assert for shape of wavelet data
+    assert len(wavelet_data.shape) == 2, f'wavelet data should be 2-dim, freqs x times. Your data shape: {wavelet_data.shape}'
     freq_idx = time_index_custom(freqs_to_sum, freqs_array)
 
     wavelet_sub = wavelet_data[np.min(freq_idx): np.max(freq_idx)+1, :] #includes the last index. Can adjust later
@@ -142,3 +145,162 @@ def sum_over_channels(wavelet_data, freqs_to_sum, freqs_array):
         power_sum_all_ch[ch] = power_sum_ch
     
     return power_sum_all_ch
+
+
+def plot_power_freqs(freqs, power_data, label = None, color = None):
+    """
+    makes a plot of power vs freq
+    freqs: x axis data (vector of freqs from wavelet info)
+    power_data: 2d array n_subjects x n_freqs
+    
+    """
+    if isinstance (power_data, pd.DataFrame):
+    # Assuming power_df_all['power'] is a 2D array where rows are observations (e.g., trials or subjects) and columns are frequencies
+        power = np.array(power_data['power'].tolist())  # Convert to numpy array if it's not already
+    else: 
+        assert isinstance(power_data, np.ndarray)
+        power = power_data
+    power_mean = power.mean(axis=0)  # Mean across observations
+    power_sem = power.std(axis=0, ddof=1) / np.sqrt(power.shape[0])  # SEM computation
+
+    # Plot the mean power spectrum
+    plt.plot(freqs, power_mean, label = label, color = color)
+
+    # Add SEM as a shaded region
+    plt.fill_between(freqs, 
+                    power_mean - power_sem, 
+                    power_mean + power_sem, 
+                    color = color,
+                    alpha=0.3)
+    plt.xscale('log')
+    plt.xlabel('Frequency (Hz)')
+    plt.ylabel('Power')
+
+
+def power_over_subs(subjects_to_process, wavelet_dir, freqs_to_sum, already_ave = False, ch_to_process = None):
+
+    """ 
+    NOTES: Currently assumes that all data contains only one channel
+    Computes power at each frequency for each subject. Takes square of magnitude.
+    Averages the wavelets over trials before processing if not already averaged.
+
+    wavelet_dir: dir with one wavelet transform file per subject. Files should contain magnitudes.
+    freqs_to_sum: Range of freqs to sum over from low to high bound, or 'all'
+        if 'all', the dataframe will return power as arrays of size freqs x power
+    already_ave: if data was averaged already
+    
+    ---
+    returns: dataframe with colums for subjects, periods, musicianship, and summed power at each frequency
+    dims of summed power: 1 x n_freqs if freqs_to_sum = 'all'. Otherwise a float.
+    """
+
+    
+    info_path = os.path.join(wavelet_dir, "wavelet_record.mat")
+    wavelet_trans_info = loadmat(info_path)
+    freqs = wavelet_trans_info['freqs'][0]
+
+    power_df = pd.DataFrame(columns=['subject', 'musician', 'period', 'power'])
+    _, _, musicians, _ = load_subject_lists()
+
+    for wavelet_file in sorted(os.listdir(wavelet_dir)):
+        sub_id = wavelet_file.split(".")[0].split('_')[-1]
+        period =  wavelet_file.split(".")[0].split('_')[-2]
+
+        if sub_id not in subjects_to_process:
+            print(f'skipping sub {sub_id}')
+            continue
+        
+        #loading data
+        data = loadmat(os.path.join(wavelet_dir, wavelet_file))
+        wavelet_sub_mag = data['wavelet_transform']
+
+        #square magnitude data to get power
+        wavelet_sub = np.square(wavelet_sub_mag)
+        
+        #averages data only if it has not already been averaged 
+        if not already_ave: 
+            wavelet_sub_ave = np.mean(wavelet_sub, axis = 0).squeeze()
+        else: 
+            wavelet_sub_ave = wavelet_sub
+            
+        #ensures that only one channel is present in data
+
+        if ch_to_process != None and ch_to_process != 'all': 
+            ch_idx = ch_index(ch_to_process)
+            wavelet_sub_ave = wavelet_sub_ave[ch_idx, :,:].squeeze()
+            
+        assert len(wavelet_sub_ave.shape) == 2, f'wavelet data should contain one channel only. Data shape is {wavelet_sub_ave.shape}'
+        
+
+        #take subset that is relevant for the frequency
+        if isinstance(freqs_to_sum, str) and freqs_to_sum == 'all':
+            power_arr = np.zeros(wavelet_sub_ave.shape[0])
+            for i, freq in enumerate(freqs): 
+                
+                power = sum_wavelet_power(wavelet_sub_ave, [freq], freqs)
+                power_arr[i] = power
+        else:
+            power_arr = sum_wavelet_power(wavelet_sub_ave, freqs_to_sum, freqs)
+            
+        
+        #add to dataframe
+        power_df_sub = pd.DataFrame({
+            'subject': sub_id,
+            'period': period,
+            'power': [power_arr]
+
+        })
+        if sub_id in musicians:
+            power_df_sub['musician'] = 1
+        else: 
+            power_df_sub['musician'] = 0
+        power_df = pd.concat([power_df, power_df_sub])
+
+    return power_df
+            
+
+def power_over_channels(subjects_to_process, wavelet_dir, freq_band, period = None):
+    """ 
+    Extracts the power at each channel in a specified band, makes the data ready to topoplot
+    freq_band: list of freqs representing lower and upper bound
+    period: 'pre' or 'post'. If None, combines the two periods
+    ---
+    Returns array of size n_subjects x n_channels
+    """
+    info_path = os.path.join(wavelet_dir, "wavelet_record.mat")
+    wavelet_trans_info = loadmat(info_path)
+    freqs = wavelet_trans_info['freqs'][0]
+
+    _, _, musicians, _ = load_subject_lists()
+
+    wavelet_sum_list = []
+    for wavelet_file in sorted(os.listdir(wavelet_dir)):
+            
+        sub_id = wavelet_file.split(".")[0].split('_')[-1]
+        if sub_id not in subjects_to_process:
+            print(f'skipping sub {sub_id}')
+            continue
+        
+        #check the period. 
+        if period != None:
+            sub_period =  wavelet_file.split(".")[0].split('_')[-2]
+            if sub_period != period:
+                continue
+    
+        
+        data = loadmat(os.path.join(wavelet_dir, wavelet_file))
+        wavelet_sub = data['wavelet_transform']
+      
+
+        freq_idx = index_custom(freq_band, freqs)
+        wavelet_sub_freq = wavelet_sub[:, np.min(freq_idx):np.max(freq_idx), :]
+        
+        wavelet_sum = np.sum(wavelet_sub_freq, axis = (1,2))
+        wavelet_sum_list.append(wavelet_sum)
+    
+    wavelet_sum_arr = np.array(wavelet_sum_list)
+    
+    return wavelet_sum_arr
+
+
+
