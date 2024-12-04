@@ -52,6 +52,111 @@ def abs_cwtmatr(cwtmatr):
     return cwtmatr_abs
 
 
+def wavelet_batch(subjects_to_process, channels, ep_dir, output_dir, wavelet_params, ave = False, overwrite = False, erp_begin = -0.5, erp_end = 0.5):
+
+    """
+    wavelet transforms epochs trial by trial for each subject
+
+    
+    subjects_to_process: list of subjects
+    channels: 'all' or a list of channels. If not all, will only save the wavelet transformed channels and others are discarded
+    ep_dir: directory where epochs are saved
+    output_dir: dir to save wavelet data
+    wavelet_params: dict with wavelet parameters. Example:
+        wavelet_params = {
+                'fs' :128 , # example sampling frequency in Hz
+                'centerfreq' : 5 ,
+                'bandwidth': 1.5,
+                'level': 10,
+                'scale_values':[6, 150, 40]
+            }
+
+    ave: whether to average spectrograms all the trials before saving (TO IMPLEMENT)
+
+     ----
+    saves wavelet transforms to .mat files
+    'wavelet': wavelet data of dim n_trials x n_channels x spect_freqs x spect_times
+    """
+    if not os.path.exists(output_dir):
+        os.mkdir(output_dir)
+
+    times = create_erp_times(erp_begin, erp_end, 128)
+
+    #check file type
+    for fif_name in sorted(os.listdir(ep_dir)):
+        if not fif_name.endswith(".fif"):
+            print('skipping file, not epochs:', fif_name)
+            continue
+
+    #identify subject
+        subject_id = fif_name.split("_")[-1].split(".")[0]
+        if subject_id not in subjects_to_process:
+           # print(f'subject {subject_id} not in subjects to process. skipping...')
+            continue
+        
+        mat_name = fif_name.split(".")[0].replace("epochs", "wavelet")
+        mat_path = os.path.join(output_dir, f"{mat_name}.mat")
+
+        if not os.path.exists(mat_path) or overwrite: #skip if the file already exists
+            print('processing', fif_name)
+            
+            #get data to loop over
+            epochs = mne.read_epochs(os.path.join(ep_dir, fif_name))
+
+            
+            epochs_data = epochs.get_data()
+
+            wavelet_data = []
+            #for trial in range(10):
+            for trial in tqdm(range(epochs_data.shape[0])):
+                
+                #initiate storage matrix
+                n_freqs = wavelet_params['scale_values'][2]
+                n_times = times.shape[0]
+                if isinstance(channels, str) and channels == 'all':
+                    trial_wavelet = np.zeros((64, n_freqs, n_times))
+                    ch_towav = np.arange(64) 
+                else:
+                    trial_wavelet = np.zeros((len(channels), n_freqs, n_times)) 
+                    ch_towav = channels
+
+                for j, ch in enumerate(ch_towav):
+                    trial_data = epochs_data[trial, ch, :]
+
+                    cwtmatr, freqs, wavelet = morwav_trans(trial_data, 
+                                                    centerfreq=wavelet_params['centerfreq'], 
+                                                    bandwidth=wavelet_params['bandwidth'], 
+                                                    scale_values=wavelet_params['scale_values'])
+
+                    cwtmatr_abs = np.abs(cwtmatr)
+                    trial_wavelet[j, :,:] = cwtmatr_abs
+
+                wavelet_data.append(trial_wavelet)
+
+            #save subject data to mat file
+            wavelet_data = np.array(wavelet_data)
+            wavelet_tosave = {
+                'wavelet_transform':wavelet_data
+            }
+
+            savemat(mat_path, wavelet_tosave)
+    
+    #processing record for wavelet
+    
+    wavelet_record = {
+        'freqs': freqs,
+        'wavelet': wavelet,
+        'subjects': subjects_to_process,
+        'centerfreq': wavelet_params['centerfreq'],
+        'bandwidth': wavelet_params['bandwidth'],
+        'scale_values': wavelet_params['scale_values'],
+        'times': times, 
+        'channels': channels
+    }
+    savemat(os.path.join(output_dir, f'wavelet_record.mat'), wavelet_record)
+
+
+
 def plot_scaleogram(cwtmatr, freqs, times, vmax = None):
 
     """ 
@@ -177,14 +282,14 @@ def plot_power_freqs(freqs, power_data, label = None, color = None):
     plt.ylabel('Power')
 
 
-def power_over_subs(subjects_to_process, wavelet_dir, freqs_to_sum, already_ave = False, ch_to_process = None):
+def power_over_subs(subjects_to_process, wavelet_dir, freqs_to_sum, already_ave = True, ch_to_process = None):
 
     """ 
     NOTES: Currently assumes that all data contains only one channel
     Computes power at each frequency for each subject. Takes square of magnitude.
     Averages the wavelets over trials before processing if not already averaged.
 
-    wavelet_dir: dir with one wavelet transform file per subject. Files should contain magnitudes.
+    wavelet_dir: dir with one wavelet transform file per subject. Files should contain
     freqs_to_sum: Range of freqs to sum over from low to high bound, or 'all'
         if 'all', the dataframe will return power as arrays of size freqs x power
     already_ave: if data was averaged already
@@ -202,6 +307,7 @@ def power_over_subs(subjects_to_process, wavelet_dir, freqs_to_sum, already_ave 
     power_df = pd.DataFrame(columns=['subject', 'musician', 'period', 'power'])
     _, _, musicians, _ = load_subject_lists()
 
+    to_print = True
     for wavelet_file in sorted(os.listdir(wavelet_dir)):
         sub_id = wavelet_file.split(".")[0].split('_')[-1]
         period =  wavelet_file.split(".")[0].split('_')[-2]
@@ -212,24 +318,29 @@ def power_over_subs(subjects_to_process, wavelet_dir, freqs_to_sum, already_ave 
         
         #loading data
         data = loadmat(os.path.join(wavelet_dir, wavelet_file))
-        wavelet_sub_mag = data['wavelet_transform']
-
-        #square magnitude data to get power
-        wavelet_sub = np.square(wavelet_sub_mag)
+        wavelet_sub = data['wavelet_transform']
         
         #averages data only if it has not already been averaged 
         if not already_ave: 
             wavelet_sub_ave = np.mean(wavelet_sub, axis = 0).squeeze()
+            if to_print:
+                print(f'Averaged data over axis 0')
+            
         else: 
             wavelet_sub_ave = wavelet_sub
-            
-        #ensures that only one channel is present in data
-
-        if ch_to_process != None and ch_to_process != 'all': 
+        
+        #squares the magnitude to get power
+        wavelet_sub_ave = np.square(wavelet_sub_ave)
+        
+        #select channels of interest
+        if ch_to_process != None: 
             ch_idx = ch_index(ch_to_process)
             wavelet_sub_ave = wavelet_sub_ave[ch_idx, :,:].squeeze()
-            
-        assert len(wavelet_sub_ave.shape) == 2, f'wavelet data should contain one channel only. Data shape is {wavelet_sub_ave.shape}'
+        
+        if to_print:
+            print('wavelet sub shape:', wavelet_sub_ave.shape)
+
+        assert wavelet_sub_ave.shape[0] == freqs.shape[0], f'Expected wavelet data shape: n_freqs x n_ch. Wavelet data should contain one channel only. Data shape is {wavelet_sub_ave.shape}'
         
 
         #take subset that is relevant for the frequency
@@ -256,51 +367,7 @@ def power_over_subs(subjects_to_process, wavelet_dir, freqs_to_sum, already_ave 
             power_df_sub['musician'] = 0
         power_df = pd.concat([power_df, power_df_sub])
 
+        to_print = False
+
     return power_df
             
-
-def power_over_channels(subjects_to_process, wavelet_dir, freq_band, period = None):
-    """ 
-    Extracts the power at each channel in a specified band, makes the data ready to topoplot
-    freq_band: list of freqs representing lower and upper bound
-    period: 'pre' or 'post'. If None, combines the two periods
-    ---
-    Returns array of size n_subjects x n_channels
-    """
-    info_path = os.path.join(wavelet_dir, "wavelet_record.mat")
-    wavelet_trans_info = loadmat(info_path)
-    freqs = wavelet_trans_info['freqs'][0]
-
-    _, _, musicians, _ = load_subject_lists()
-
-    wavelet_sum_list = []
-    for wavelet_file in sorted(os.listdir(wavelet_dir)):
-            
-        sub_id = wavelet_file.split(".")[0].split('_')[-1]
-        if sub_id not in subjects_to_process:
-            print(f'skipping sub {sub_id}')
-            continue
-        
-        #check the period. 
-        if period != None:
-            sub_period =  wavelet_file.split(".")[0].split('_')[-2]
-            if sub_period != period:
-                continue
-    
-        
-        data = loadmat(os.path.join(wavelet_dir, wavelet_file))
-        wavelet_sub = data['wavelet_transform']
-      
-
-        freq_idx = index_custom(freq_band, freqs)
-        wavelet_sub_freq = wavelet_sub[:, np.min(freq_idx):np.max(freq_idx), :]
-        
-        wavelet_sum = np.sum(wavelet_sub_freq, axis = (1,2))
-        wavelet_sum_list.append(wavelet_sum)
-    
-    wavelet_sum_arr = np.array(wavelet_sum_list)
-    
-    return wavelet_sum_arr
-
-
-

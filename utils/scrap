@@ -1,0 +1,152 @@
+#UTILS
+
+def morwav_trans(timeseries, centerfreq, bandwidth, fs = 128, scale_values = None):
+    """ 
+    timeseries: a n_timepoints x 1 array
+    centerfreq: low centerfreq = small gaussian window, less localized in the freq domain
+    bandwidth: the freqs of the wavelet (i.e. how localized in the time domain. Large bandwidth = high temporal precision, low freq res)
+
+    ---
+    returns:
+    cwtmatr: continuous wavelet transform matrix of size n_freqs x n_timepoints. Imaginary values included.
+    freqs: vector of freqs converted from sampling_period and scaling factors
+    wavelet: the specified wavelet 
+    
+    """
+    wavelet = f"cmor{centerfreq}-{bandwidth}" #use morelet wavelet
+
+    if scale_values == None:
+        scales = np.geomspace(6, 130, 40) #scaling factors. Each channel is the wavelet scaled by some constant. The list of constants is log spaced from 6 to 130
+    elif isinstance(scale_values, list):
+        scales = np.geomspace(scale_values[0], scale_values[1], scale_values[2])
+    sampling_period = 1/fs
+    cwtmatr, freqs = pywt.cwt(timeseries, scales, wavelet, sampling_period=sampling_period)
+
+    return cwtmatr, freqs, wavelet
+
+def abs_cwtmatr(cwtmatr):
+    """ 
+    get the abs value of the matrix
+    just use np.abs instead because I don't actually care about getting rid of the last row and colum
+    """
+
+    cwtmatr_abs = np.abs(cwtmatr[:-1, :-1])
+    return cwtmatr_abs
+
+
+def plot_scaleogram(cwtmatr, freqs, times, vmax = None):
+
+    """ 
+    Plots the scalegram of a wavelet transform given the complex matrix
+    times: erp times
+    vmax: scaling of colorbar
+    """
+    #cwtmatr_abs = np.abs(cwtmatr[:-1, :-1])
+    cwtmatr_abs =  np.abs(cwtmatr)
+    fig, ax = plt.subplots(figsize=(6, 4))  # Adjust figure size as needed
+    pcm = ax.pcolormesh(times, freqs, cwtmatr_abs, vmax = vmax, cmap = 'jet')
+
+    #format axes
+    plt.ylabel('Frequencies (Hz)')
+    plt.xlabel('Time (s)')
+    
+    
+    #format y axis so that it's readable in log
+    ax.set_yscale('log')
+
+    
+    ax.set_yticks([ 2, 5, 10, 20, 30])
+    ax.get_yaxis().set_major_formatter(ticker.ScalarFormatter())
+
+    fig.colorbar(pcm, ax=ax)
+    
+
+def pad_erp_times(time_vector, num_extend, fs=128):
+    """
+    Extends a time vector by adding values on both sides, maintaining the step size.
+
+    time_vector (numpy array): Original time vector.
+    num_extend (int): Number of values to add on each side.
+
+    Returns:
+        numpy array: Extended time vector.
+    """
+    # Calculate step size
+    step_size = 1/fs
+
+    # Extend the time vector on both ends
+    start_extend = np.arange(time_vector[0] - step_size * num_extend, time_vector[0], step_size)
+    end_extend = np.arange(time_vector[-1] + step_size, time_vector[-1] + step_size * (num_extend + 1), step_size)
+
+    # Combine the arrays
+    extended_time_vector = np.concatenate([start_extend, time_vector, end_extend])
+
+    return extended_time_vector
+
+
+def wavelet_batch(subjects_to_process, periods, epochs_df):
+    """
+    subjects_to_process: list of subjects
+    periods: list of periods
+    epochs_df: dataframe with epoch data already
+    ---
+    returns:
+    wavelet_df: dataframe with info about subjects and spectrogram 
+    freqs: array of freqs
+    wavelet: mother wavelet used in transform
+    """
+    
+    wavelet_df = pd.DataFrame(columns = ['subject', 'period', 'musician', 'spectrogram'])
+
+    for sub in subjects_to_process:
+        for period in periods: 
+            print('processing subject', sub, period)
+
+            if sub in musicians: 
+                    musician = 1
+            else: 
+                    musician = 0
+
+            
+            df_sub = epochs_df[(epochs_df['subject'] == sub) & (epochs_df['period'] == period)]
+            epochs_sub = np.squeeze(df_sub['epochs'])
+            n_trials = epochs_sub.shape[0]
+
+
+            #will be made into an array of size n_trials x n_channels x spect_freqs x spect_times
+            cwtmatr_sub = []
+
+            #initalize shape of matrix for storing each trial
+            test_cwtmatr, _, _ = morwav_trans(epochs_sub[1,1, :], centerfreq=centerfreq, bandwidth=bandwidth, scale_values=scale_values)
+            trial_shape = (64, test_cwtmatr.shape[0], test_cwtmatr.shape[1]) #64 channels x cwtmatr dims
+
+            #loop over trials
+            for trial in tqdm(range(n_trials)):
+
+                #initialize np array of shape n_channels x spect_freqs x spect_times to store data for one trial
+                trial_cwtmatr = np.zeros(trial_shape, dtype=np.complex128)
+
+
+            #loop over channels
+                for ch in range(64):
+                    ep_timeseries = epochs_sub[trial, ch, :]
+                    #wavelet transform on the channel
+                    cwtmatr, freqs, wavelet = morwav_trans(ep_timeseries, centerfreq=centerfreq, bandwidth=bandwidth, scale_values=scale_values)
+                
+                    trial_cwtmatr[ch] = cwtmatr
+
+                cwtmatr_sub.append(trial_cwtmatr)
+            
+            
+            cwtmatr_sub = np.array(cwtmatr_sub)
+            wavelet_df_sub = pd.DataFrame({
+                'subject':sub,
+                'musician': musician,
+                'period': period,
+                'spectrogram': [cwtmatr_sub]
+            })
+
+            #add sub data to dataframe
+            wavelet_df = pd.concat([wavelet_df, wavelet_df_sub])
+    return wavelet_df, freqs, wavelet
+
