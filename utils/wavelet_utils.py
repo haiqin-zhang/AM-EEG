@@ -370,4 +370,48 @@ def power_over_subs(subjects_to_process, wavelet_dir, freqs_to_sum, already_ave 
         to_print = False
 
     return power_df
+
+
+def power_over_channels(subjects_to_process, wavelet_dir, freq_band, period = None):
+    """ 
+    Extracts the power at each channel in a specified band, makes the data ready to topoplot
+    freq_band: list of freqs representing lower and upper bound
+    period: 'pre' or 'post'. If None, combines the two periods
+    ---
+    Returns array of size n_subjects x n_channels
+    """
+    info_path = os.path.join(wavelet_dir, "wavelet_record.mat")
+    wavelet_trans_info = loadmat(info_path)
+    freqs = wavelet_trans_info['freqs'][0]
+
+    _, _, musicians, _ = load_subject_lists()
+
+    wavelet_sum_list = []
+    for wavelet_file in sorted(os.listdir(wavelet_dir)):
             
+        sub_id = wavelet_file.split(".")[0].split('_')[-1]
+        if sub_id not in subjects_to_process:
+            print(f'skipping sub {sub_id}')
+            continue
+        
+        #check the period. 
+        if period != None:
+            sub_period =  wavelet_file.split(".")[0].split('_')[-2]
+            if sub_period != period:
+                continue
+    
+        
+        data = loadmat(os.path.join(wavelet_dir, wavelet_file))
+        wavelet_sub = data['wavelet_transform']
+      
+
+        freq_idx = index_custom(freq_band, freqs)
+        wavelet_sub_freq = wavelet_sub[:, np.min(freq_idx):np.max(freq_idx), :]
+        
+        wavelet_sum = np.sum(wavelet_sub_freq, axis = (1,2))
+        wavelet_sum_list.append(wavelet_sum)
+    
+    wavelet_sum_arr = np.array(wavelet_sum_list)
+    
+    return wavelet_sum_arr
+
