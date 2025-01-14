@@ -189,6 +189,50 @@ def plot_scaleogram(cwtmatr, freqs, times, vmax = None):
     fig.colorbar(pcm, ax=ax)
     
 
+def plot_scaleogram_subplots(cwtmatr, freqs, times, vmax=None, ax=None):
+    """
+    Plots the scalogram of a wavelet transform given the complex matrix.
+
+    Parameters:
+    cwtmatr: ndarray
+        The complex matrix of the wavelet transform.
+    freqs: ndarray
+        The frequencies corresponding to the wavelet transform.
+    times: ndarray
+        The time points corresponding to the wavelet transform.
+    vmax: float, optional
+        Scaling of the colorbar.
+    ax: matplotlib.axes.Axes, optional
+        An existing axis to plot on. If None, a new figure and axis are created.
+    """
+    if np.any(np.iscomplex(cwtmatr)):
+        cwtmatr_abs = np.abs(cwtmatr)
+    else:
+        cwtmatr_abs = cwtmatr
+
+    # Create a new figure and axis if ax is not provided
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(6, 4))  # Adjust figure size as needed
+
+    pcm = ax.pcolormesh(times, freqs, cwtmatr_abs, vmax=vmax, cmap='jet')
+
+    # Format axes
+    ax.set_ylabel('Frequencies (Hz)')
+    ax.set_xlabel('Time (s)')
+
+    # Format y-axis for log scale
+    ax.set_yscale('log')
+    ax.set_yticks([2, 5, 10, 20, 30])
+    ax.get_yaxis().set_major_formatter(ticker.ScalarFormatter())
+
+    # Add colorbar only if a new figure was created
+    if ax is None:
+        fig.colorbar(pcm, ax=ax)
+    else:
+        plt.colorbar(pcm, ax=ax)
+
+    return ax
+
 def pad_erp_times(time_vector, num_extend, fs=128):
     """
     Extends a time vector by adding values on both sides, maintaining the step size.

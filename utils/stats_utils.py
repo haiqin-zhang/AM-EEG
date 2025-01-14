@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.stats import ttest_rel, ttest_1samp, ttest_ind, kstest, wilcoxon
+from scipy.stats import ttest_rel, ttest_1samp, ttest_ind, kstest, wilcoxon, pearsonr, spearmanr
 from statsmodels.stats.multitest import fdrcorrection
 import pickle
 import mne
@@ -124,5 +124,3 @@ def jackknife_1samp(data_point, test):
     return t_stat_jk, p_val_jk
         
     
-
-
