@@ -124,3 +124,16 @@ def jackknife_1samp(data_point, test):
     return t_stat_jk, p_val_jk
         
     
+def invert_p_values(p_values_arr):
+    """ 
+    Transforms an arr of p values to prepare for plotting using mne.viz.plot_topomap
+    Inverts the p values (replace x with 1-x) so that smaller p values 
+    Makes all insignificant p values 0 so that when inverted, it shows up as white in the topomap
+
+    p_values_arr: a 1d array of p-values
+    returns: p_values_inv
+
+
+    """
+    p_values_inv = [1-x if x <0.05 else 0 for x in p_values_arr]
+    return p_values_inv

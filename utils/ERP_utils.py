@@ -90,23 +90,24 @@ def ch_index(ch_list):
     return ch_indices
 
 
-def time_index(timepoints):
-
-    """
-    Finds the index in the time vector from -0.2 to 0.5
-    timepoints: a list of timepoints expressed in seconds
-    erp_times: time vector to find the index for(which should be an array)
+# def time_index(timepoints):
     
-    ---
-    Returns a list of indices  
-    """
-    erp_times = load_erp_times()
-    assert isinstance(timepoints, list)
-    idx_list = []
-    for time in timepoints: 
-        time_idx = min(range(len(erp_times)), key=lambda i: abs(erp_times[i] - time))
-        idx_list.append(time_idx)
-    return idx_list
+
+#     """
+#     Finds the index in the time vector from -0.2 to 0.5
+#     timepoints: a list of timepoints expressed in seconds
+#     erp_times: time vector to find the index for(which should be an array)
+    
+#     ---
+#     Returns a list of indices  
+#     """
+#     erp_times = load_erp_times()
+#     assert isinstance(timepoints, list)
+#     idx_list = []
+#     for time in timepoints: 
+#         time_idx = min(range(len(erp_times)), key=lambda i: abs(erp_times[i] - time))
+#         idx_list.append(time_idx)
+#     return idx_list
 
 def time_index_custom(timepoints, erp_times):
 

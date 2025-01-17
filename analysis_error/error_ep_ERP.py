@@ -21,10 +21,9 @@ from plot_utils import *
 
 #CHANGE THIS AS THE EXPERIMENT PROGRESSES
 #----------------------------------------
-subjects_to_process = ['13','14','15','16','17', '18', '19', '20']
-#['01', '04', '05','06','07','08','09','10','11','12']
-                       #13','14','15','16','17', '20']
-periods = ['pre', 'post']
+#subjects_to_process =  ['01', '04', '05', '06', '07', '08', '09', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20']
+subjects_to_process = ['17']
+periods = ['post']
 keystroke_trigs = 'audio'
 
 overwrite = False #overwrite existing files
@@ -50,9 +49,9 @@ erp_end = 0.5
 #======================================================================================
 #                        INITIALIZE DIRECTORIES
 #======================================================================================
-pp_dir = "/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/data_preprocessed" #where the preprocessed files are
-evokeds_folder = '/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/analysis_error/error_ERP_data_n05to05'
-epochs_folder = '/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/analysis_error/error_epochs_data_n05to05'
+pp_dir = "/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/data_preprocessed_30Hz" #where the preprocessed files are
+evokeds_folder = '/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/analysis_error/error_ERP_data_n05to05_30Hz'
+epochs_folder = '/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/analysis_error/error_epochs_data_n05to05_30Hz'
 
 for folder in [evokeds_folder, epochs_folder]:
     if not os.path.exists(folder):
@@ -133,7 +132,8 @@ for folder in sorted(os.listdir(pp_dir)):
         #--------------------------------------------
 
         #all epochs
-        epochs = mne.Epochs(reconst_raw, t_keystrokes, tmin=erp_begin, tmax=erp_end, preload=True)
+        epochs = mne.Epochs(reconst_raw, t_keystrokes, tmin=erp_begin, tmax=erp_end, preload=True, reject = None)
+        print(epochs.drop_log)
         epochs = epochs.copy().interpolate_bads(reset_bads = True)
         evoked = epochs.average()
 
