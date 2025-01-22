@@ -21,12 +21,12 @@ from plot_utils import *
 
 #CHANGE THIS AS THE EXPERIMENT PROGRESSES
 #----------------------------------------
-#subjects_to_process =  ['01', '04', '05', '06', '07', '08', '09', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20']
-subjects_to_process = ['17']
-periods = ['post']
-keystroke_trigs = 'audio'
+subjects_to_process =  ['01', '04', '05', '06', '07', '08', '09', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20']
+#subjects_to_process = ['17']
+periods = ['pre', 'post']
+keystroke_trigs = 'audio' #audio for everyone because we are looking for reaction to audio
 
-overwrite = False #overwrite existing files
+overwrite = True #overwrite existing files
 plot = False
 
 find_mapchanges = True
@@ -50,8 +50,8 @@ erp_end = 0.5
 #                        INITIALIZE DIRECTORIES
 #======================================================================================
 pp_dir = "/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/data_preprocessed_30Hz" #where the preprocessed files are
-evokeds_folder = '/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/analysis_error/error_ERP_data_n05to05_30Hz'
-epochs_folder = '/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/analysis_error/error_epochs_data_n05to05_30Hz'
+evokeds_folder = '/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/analysis_error/error_ERP_data_n05to05_30Hz_corrected'
+epochs_folder = '/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/analysis_error/error_epochs_data_n05to05_30Hz_corrected'
 
 for folder in [evokeds_folder, epochs_folder]:
     if not os.path.exists(folder):

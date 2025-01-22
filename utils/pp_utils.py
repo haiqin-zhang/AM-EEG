@@ -221,38 +221,74 @@ def find_keystrokes(raw, t_keystrokes, timeframes):
     return filt_keystrokes_events
 
 
-def mapchange_keystrokes(t_modeswitch, t_keystroke):
+
+
+# def mapchange_keystrokes(t_modeswitch, t_keystroke): #old version
+#     """ 
+#     Finds all the keystroke triggers that are the first keystrokes after a map change.
+
+#     t_modeswitch: subset of events_array with all mode switch triggers
+#     t_keystroke: subset of events_array with all keystrokes
+#     ---
+#     Returns: first keystrokes, a np array in the same format as events_array (3 columns, first column is time)
+#     """
+    
+#     first_keystrokes = []
+#     mode_times = t_modeswitch[:, 0]  # Extract mode switch times
+#     mode_idx = 0
+#     num_modes = len(mode_times)
+
+#     for keystroke in t_keystroke:
+#         k_time = keystroke[0]
+
+#         # Advance mode_idx until the keystroke is after the current mode switch
+#         while mode_idx < num_modes and k_time > mode_times[mode_idx]:
+#             first_keystrokes.append(keystroke)  # Add the keystroke
+#             mode_idx += 1  # Move to the next mode switch
+
+#         # If the keystroke is earlier than the next mode switch, ignore it
+#         if mode_idx < num_modes and k_time <= mode_times[mode_idx]:
+#             continue
+
+#     return np.array(first_keystrokes)
+
+def mapchange_keystrokes_2(t_modeswitch, t_keystroke):
     """ 
-    Finds all the keystroke triggers that are the first keystrokes after a map change
+    Finds all the keystroke triggers that are the first keystrokes after a map change.
 
     t_modeswitch: subset of events_array with all mode switch triggers
     t_keystroke: subset of events_array with all keystrokes
     ---
-    Returns: first keystrokes, a np array in the same format as events_array(3 columns, first column is time)
+    Returns: first keystrokes, a np array in the same format as events_array (3 columns, first column is time)
     """
     
     first_keystrokes = []
-    # Extract time of mode switches and keystrokes
-    mode_times = t_modeswitch[:, 0]
-    # Initialize the index for mode switches
-    mode_idx = 0
-    num_modes = len(mode_times)
+    switch_times = t_modeswitch[:, 0]  # Extract mode switch times
+    switch_idx = 0
+    n_switches = len(switch_times)
 
-    already_found = False
+    
+
+    keystroke_times = t_keystroke[:,0]
 
     for keystroke in t_keystroke:
-        # Get the time of the current keystroke
-        k_time = keystroke[0]
+        if switch_idx >= n_switches - 2:
+            break
 
-        if mode_idx < num_modes-1:
-            if k_time > mode_times[mode_idx]:
-                if not already_found:
-                    first_keystrokes.append(keystroke)
-                    mode_idx +=1
+        ktime = keystroke[0]
 
-    first_keystrokes = np.array(first_keystrokes)
+        #make sure the keystroke is between two mode switches
+        if ktime> switch_times[switch_idx] and ktime < switch_times[switch_idx+1]:
+            first_keystrokes.append(keystroke)
+            switch_idx+=1
+        
+        #if there are no keystrokes between two mode switches, this forces it to jump to the next mode
+        elif ktime > switch_times[switch_idx+1] and ktime < switch_times[switch_idx+2]:
+            first_keystrokes.append(keystroke)
+            switch_idx+=2
 
-    return first_keystrokes
+    return np.array(first_keystrokes)
+
 
 
 

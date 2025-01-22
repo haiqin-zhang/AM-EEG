@@ -1,7 +1,7 @@
 ,keystroke_idx,time,type,prev_keystrokes
 0,0,112,other,
 1,1,252,other,
-2,2,405,first,0
+2,2,405,first,2
 3,3,824,other,
 4,4,966,other,
 5,5,1124,other,

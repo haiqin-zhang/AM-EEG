@@ -137,3 +137,38 @@ def invert_p_values(p_values_arr):
     """
     p_values_inv = [1-x if x <0.05 else 0 for x in p_values_arr]
     return p_values_inv
+
+def t_over_channels(array):
+    """
+    takes a difference array of size n_subs, n_ch (64 expected) and tests whether the differences are sigificantly different from 0
+
+    ---
+    returns:
+    t: test statistic of size 64, one for each channel
+    p: test statistic of size 64
+    """
+    t_values = []
+    p_values = []
+    
+    for ch in range(64):
+        diff_to_test = array[:, ch]
+        t, p = wilcoxon_1samp(diff_to_test)
+        t_values.append(t)
+        p_values.append(p)
+
+    p_values = fdrcorrection(p_values)[1]
+    
+    return t_values, p_values
+
+
+def p_mask(diffs, p_values):
+
+    """ 
+    masks differences between two conditions so that only significant differences are plotted on the topomap
+    diffs: 1d array
+    p_values: 1d array of same size
+    """
+    assert diffs.shape == p_values.shape, 'diffs and p-values should be the same shape'
+    diffs_masked = diffs.copy()
+    diffs_masked[p_values>0.05] = 0
+    return diffs_masked
