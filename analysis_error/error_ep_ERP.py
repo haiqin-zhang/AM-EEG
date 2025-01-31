@@ -21,9 +21,15 @@ from plot_utils import *
 
 #CHANGE THIS AS THE EXPERIMENT PROGRESSES
 #----------------------------------------
-subjects_to_process =  ['01', '04', '05', '06', '07', '08', '09', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20']
-#subjects_to_process = ['17']
-periods = ['pre', 'post']
+#subjects_to_process =  ['01', '04', '05', '06', '07', '08', '09', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20']
+subjects_to_process = ['13']
+
+if len(subjects_to_process) == 1: #only correct bads to one subject
+    bad_ch_sub = ['PO7', 'O1', 'Iz', 'P8', 'P10', 'TP8']
+else:
+    bad_ch_sub = []
+
+periods = ['pre','post']
 keystroke_trigs = 'audio' #audio for everyone because we are looking for reaction to audio
 
 overwrite = True #overwrite existing files
@@ -91,6 +97,7 @@ for folder in sorted(os.listdir(pp_dir)):
         raw.set_channel_types({name: 'eog' for name in ch_names_72[66:68]})
 
         raw.set_montage('biosemi64')
+        raw.info['bads'] = bad_ch_sub
 
         #check psd
         if plot:
@@ -135,7 +142,9 @@ for folder in sorted(os.listdir(pp_dir)):
         epochs = mne.Epochs(reconst_raw, t_keystrokes, tmin=erp_begin, tmax=erp_end, preload=True, reject = None)
         print(epochs.drop_log)
         epochs = epochs.copy().interpolate_bads(reset_bads = True)
+
         evoked = epochs.average()
+        evoked = evoked.copy().interpolate_bads(reset_bads = True)
 
 
         #epochs separated by mode
@@ -159,7 +168,7 @@ for folder in sorted(os.listdir(pp_dir)):
 
         if find_mapchanges:
             #keystrokes for keystrokes after map change and other keystrokes
-            first_keystrokes = mapchange_keystrokes(t_modeswitch = t_modeswitch, t_keystroke=t_keystrokes)
+            first_keystrokes = mapchange_keystrokes_2(t_modeswitch = t_modeswitch, t_keystroke=t_keystrokes)
             other_keystrokes = withinmap_keystrokes(t_keystrokes, first_keystrokes)
    
             #epochs separated by whether it is immediately after a map change or not
