@@ -82,7 +82,7 @@ def ch_index(ch_list):
     """
     #get channel names which will be used for indexing channels
     assert isinstance (ch_list, list)
-    with open('../utils/ch_names.pkl', 'rb') as file:
+    with open('/Users/cindyzhang/Documents/M2/Audiomotor_Piano/AM-EEG/utils/ch_names.pkl', 'rb') as file:
         ch_names_all = pickle.load(file)
 
     ch_names_72 = ch_names_all[0:72]

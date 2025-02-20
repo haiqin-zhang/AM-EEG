@@ -8,6 +8,8 @@
 *.mp4
 *.pkl
 *.zip
+*.svg
+*.png
 
 #folders
 test_data/
